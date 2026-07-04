@@ -81,10 +81,13 @@ contains
       !! Hold the first/last path point fixed during deformation
       !! (default false).
     logical, intent(in), optional :: deform_verbose
-      !! Verbosity of the deformation loop (default true, like Python).
+      !! Verbosity of the deformation loop. Defaults to the value of
+      !! `verbose`, so passing only `verbose` controls all output. (The
+      !! Python code always prints the deformation messages.)
 
     integer :: maxiter_
     logical :: verbose_
+    logical :: deform_verbose_
     type(spline_path), target :: path
     type(single_field_instanton) :: tobj
     type(deformation_spline) :: deform_obj
@@ -105,6 +108,8 @@ contains
     verbose_ = .false.
     if (present(maxiter)) maxiter_ = maxiter
     if (present(verbose)) verbose_ = verbose
+    deform_verbose_ = verbose_
+    if (present(deform_verbose)) deform_verbose_ = deform_verbose
     if (maxiter_ <= 0) then
       error stop "full_tunneling: maxiter must be positive"
     end if
@@ -146,7 +151,7 @@ contains
         status = st
         return
       end if
-      call deform_obj%deform_path(converged, st, verbose=deform_verbose)
+      call deform_obj%deform_path(converged, st, verbose=deform_verbose_)
       if (st == err_deformation) then
         ! Mirrors the Python code, which catches DeformationError, prints
         ! it and continues with converged = False.
