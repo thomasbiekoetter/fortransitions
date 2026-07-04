@@ -855,20 +855,36 @@ contains
 
   end subroutine sfi_find_profile
 
-  function sfi_find_action(self, profile) result(action)
+  function sfi_find_action(self, profile, action_pot, action_kin)  &
+      result(action)
     !! The Euclidean action of the instanton:
     !! S = int [ (dphi/dr)^2/2 + V(phi) - V(phi_metamin) ] r^alpha dr dOmega.
-    !! Port of SingleFieldInstanton.findAction.
+    !! Port of SingleFieldInstanton.findAction, extended with the
+    !! optional Derrick-theorem estimates of the action from the
+    !! potential term alone (2/(2-d) * S_pot) and from the kinetic term
+    !! alone (2/d * S_kin). For an exact solution of the bounce equation
+    !! both equal the full action, so they are useful diagnostics.
 
     class(single_field_instanton), intent(inout) :: self
     type(profile1d), intent(in) :: profile
+    real(wp), intent(out), optional :: action_pot
+      !! Action estimated from the potential term alone via Derrick's
+      !! theorem: 2/(2-d) int [V(phi) - V(phi_metamin)] r^alpha dr dOmega
+      !! (including the bulk term of the bubble interior). Set to 0 for
+      !! d = 2, where the potential part of an exact solution vanishes.
+    real(wp), intent(out), optional :: action_kin
+      !! Action estimated from the kinetic term alone via Derrick's
+      !! theorem: 2/d int [(dphi/dr)^2/2] r^alpha dr dOmega.
     real(wp) :: action
 
     real(wp) :: d
     real(wp) :: area_coef
     real(wp) :: volume
     real(wp) :: v_meta
-    real(wp), allocatable :: integrand(:)
+    real(wp), allocatable :: integrand_kin(:)
+    real(wp), allocatable :: integrand_pot(:)
+    real(wp) :: s_kin
+    real(wp) :: s_pot
     integer :: n
     integer :: i
 
@@ -876,16 +892,29 @@ contains
     d = self%alpha + 1.0_wp  ! Number of dimensions in the integration
     area_coef = 2.0_wp*pi**(0.5_wp*d)/gamma(0.5_wp*d)
     v_meta = self%pot%v(self%phi_metamin)
-    allocate(integrand(n))
+    allocate(integrand_kin(n))
+    allocate(integrand_pot(n))
     do i = 1, n
-      integrand(i) = (0.5_wp*profile%dphi(i)**2  &
-        + self%pot%v(profile%phi(i)) - v_meta)  &
+      integrand_kin(i) = 0.5_wp*profile%dphi(i)**2  &
+        *profile%r(i)**self%alpha*area_coef
+      integrand_pot(i) = (self%pot%v(profile%phi(i)) - v_meta)  &
         *profile%r(i)**self%alpha*area_coef
     end do
-    action = simpson(integrand, profile%r)
-    ! Find the bulk term in the bubble interior.
+    s_kin = simpson(integrand_kin, profile%r)
+    s_pot = simpson(integrand_pot, profile%r)
+    ! Find the bulk term in the bubble interior (purely potential: the
+    ! field sits at phi(r(1)) with dphi = 0 there).
     volume = profile%r(1)**d*pi**(0.5_wp*d)/gamma(0.5_wp*d + 1.0_wp)
-    action = action + volume*(self%pot%v(profile%phi(1)) - v_meta)
+    s_pot = s_pot + volume*(self%pot%v(profile%phi(1)) - v_meta)
+    action = s_kin + s_pot
+    if (present(action_pot)) then
+      if (d /= 2.0_wp) then
+        action_pot = 2.0_wp*s_pot/(2.0_wp - d)
+      else
+        action_pot = 0.0_wp
+      end if
+    end if
+    if (present(action_kin)) action_kin = 2.0_wp*s_kin/d
 
   end function sfi_find_action
 

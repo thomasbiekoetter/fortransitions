@@ -109,10 +109,19 @@ program double_well
     1.024593855202_wp, 1.115773451273_wp, 1.216831369462_wp,  &
     1.307134557354_wp, 1.389232396274_wp, 1.464850194264_wp,  &
     1.535207198375_wp]
+  ! Actions from reference/ref_double_well.py, with the findProfile
+  ! tolerances tightened to xtol = phitol = 1e-9 in both codes (the
+  ! defaults of 1e-4 leave a few-1e-3 relative error in the action).
+  ! The residual differences of up to ~1e-3 come from slightly
+  ! different path-deformation trajectories: the deformation stops at a
+  ! path with fRatio of a few percent, and which such path is reached
+  ! depends on the implementation, the compiler and the optimization
+  ! level (the action varies at order fRatio**2 among them). Hence the
+  ! relative tolerance of 2e-3 in the assertion.
   real(wp), parameter :: ref_action(nc) = [  &
-    7.8529849488e3_wp, 3.8795808348e2_wp, 1.1971536481e2_wp,  &
-    6.2140040477e1_wp, 3.9510884371e1_wp, 2.7849657844e1_wp,  &
-    2.1060036377e1_wp]
+    7.8805837752e3_wp, 3.8913237834e2_wp, 1.1963573348e2_wp,  &
+    6.2230671791e1_wp, 3.9636887635e1_wp, 2.7922475045e1_wp,  &
+    2.0887209824e1_wp]
 
   type(bounce_potential), target :: pot
   type(full_tunneling_result) :: res
@@ -147,12 +156,15 @@ program double_well
     ! ends at the false minimum (0, 0).
     path_pts(1, :) = xtrue
     path_pts(2, :) = [0.0e0_wp, 0.0e0_wp]
-    call full_tunneling(path_pts, pot, res, status, verbose=.false.)
+    call full_tunneling(path_pts, pot, res, status, verbose=.false.,  &
+      xtol=1.0e-9_wp, phitol=1.0e-9_wp)
     call assert_true("full_tunneling status", status == status_ok)
     print "(a,es16.8)", "bounce action S_3 = ", res%action
+    print "(a,es16.8,a,es16.8)", "S_3 from potential/kinetic term only: ",  &
+      res%action_pot, " /", res%action_kin
     print "(a,es10.2)", "fRatio = ", res%fratio
     call assert_close("bounce action S_3", res%action,  &
-      ref_action(i), 5.0e-3_wp)
+      ref_action(i), 2.0e-3_wp)
   end do
 
   if (nfail > 0) then

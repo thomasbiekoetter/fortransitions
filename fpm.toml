@@ -28,10 +28,10 @@ csv-fortran = { git="https://github.com/jacobwilliams/csv-fortran.git" }
 
 [features]
 debug.flags = "-fPIC -O0 -g "
-debug.gfortran.flags = "-fbounds-check -fbacktrace -Wall -Wuninitialized -fmax-errors=1 -fcheck=all -ffpe-trap=invalid,zero,overflow"
-debug.ifx.flags = "-check bounds -check pointer -traceback"
+debug.gfortran.flags = "-fbounds-check -fbacktrace -Wall -Wuninitialized -fmax-errors=1 -fcheck=all -ffpe-trap=invalid,zero,overflow -ffpe-summary=invalid,zero,overflow"
+debug.ifx.flags = "-check bounds -check pointer -traceback -fp-model=precise"
 release.flags = "-O3"
-release.gfortran.flags = "-march=native -fmax-errors=1 -ffixed-line-length-none -fno-range-check"
+release.gfortran.flags = "-march=native -fmax-errors=1 -ffixed-line-length-none -fno-range-check -ffpe-summary=invalid,zero,overflow"
 release.ifx.flags = "-xHost -fp-model=precise"
 
 [profiles]

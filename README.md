@@ -63,7 +63,11 @@ print *, res%action, res%fratio
 
 `res%profile` holds the one-dimensional bubble profile (r, phi, dphi)
 and `res%phi` the corresponding points of the deformed path in field
-space. See `app/full_tunneling_example.f90` for a complete example (the two-field example
+space. As additional diagnostics, `res%action_pot` and `res%action_kin`
+give the action computed from only the potential or only the kinetic
+term of the integrand, rescaled by Derrick's theorem; for an exact
+solution of the bounce equation both equal `res%action`, so their
+deviation measures the quality of the solution (like `res%fratio`). See `app/full_tunneling_example.f90` for a complete example (the two-field example
 of the Python package, `examples/fullTunneling.py`) including CSV
 output, and `test/check.f90` for validation against reference values
 computed with the Python package.
@@ -79,6 +83,13 @@ fpm build --profile release
 fpm test --profile release   # validates against Python reference values
 fpm run --profile release    # runs the two-field example, writes CSVs
 ```
+
+Always pass `--profile debug` or `--profile release` explicitly: without
+it, fpm compiles with no flags at all, so none of the flags defined in
+`fpm.toml` are applied. In particular, ifx then falls back to its
+value-unsafe floating-point default (`-fp-model=fast`), which breaks the
+thin-wall shooting; both profiles therefore set `-fp-model=precise` for
+ifx.
 
 The reference values asserted in the test programs were produced with the
 original Python package; the scripts that generate them are collected in

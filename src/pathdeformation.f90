@@ -32,6 +32,15 @@ module cosmotransitions__pathdeformation
       !! Points along the final deformed path, shape (npoints, ndim).
     real(wp) :: action = 0.0_wp
       !! Euclidean action of the instanton.
+    real(wp) :: action_pot = 0.0_wp
+      !! Action estimated from the potential term of the integrand alone,
+      !! rescaled by Derrick's theorem (2/(2-d) * S_pot with d = alpha+1).
+      !! Equals `action` for an exact solution of the bounce equation;
+      !! the difference is a diagnostic of the solution quality.
+    real(wp) :: action_kin = 0.0_wp
+      !! Action estimated from the kinetic term of the integrand alone,
+      !! rescaled by Derrick's theorem (2/d * S_kin with d = alpha+1).
+      !! Equals `action` for an exact solution of the bounce equation.
     real(wp) :: fratio = 0.0_wp
       !! Largest transverse force on the final path relative to the
       !! largest potential gradient (zero for a perfect solution).
@@ -45,7 +54,7 @@ contains
 
   subroutine full_tunneling(path_pts, pot, res, status, maxiter, verbose,  &
       v_spline_samples, alpha, npoints, nb, kb, fix_start, fix_end,  &
-      deform_verbose)
+      deform_verbose, xtol, phitol)
     !! Calculate the instanton solution in multiple field dimensions.
     !! Port of pathDeformation.fullTunneling (with the default
     !! tunneling_class = SingleFieldInstanton and
@@ -84,6 +93,16 @@ contains
       !! Verbosity of the deformation loop. Defaults to the value of
       !! `verbose`, so passing only `verbose` controls all output. (The
       !! Python code always prints the deformation messages.)
+    real(wp), intent(in), optional :: xtol
+      !! Target accuracy of the release-point bisection in the 1d
+      !! tunneling (default 1e-4, like Python). With the default, the
+      !! action typically carries a relative error at the few-1e-3
+      !! level, visible as the spread between `res%action`,
+      !! `res%action_pot` and `res%action_kin`. Tightening xtol and
+      !! phitol (e.g. to 1e-9) removes it at little extra cost.
+    real(wp), intent(in), optional :: phitol
+      !! Fractional error tolerance of the profile integration in the 1d
+      !! tunneling (default 1e-4, like Python). See `xtol`.
 
     integer :: maxiter_
     logical :: verbose_
@@ -134,7 +153,8 @@ contains
         status = st
         return
       end if
-      call tobj%find_profile(prof, st, npoints=npoints)
+      call tobj%find_profile(prof, st, npoints=npoints, xtol=xtol,  &
+        phitol=phitol)
       if (st /= status_ok) then
         status = st
         return
@@ -193,7 +213,8 @@ contains
     ! Assemble the output.
     res%profile = prof
     res%phi = path%pts_many(prof%phi)
-    res%action = tobj%find_action(prof)
+    res%action = tobj%find_action(prof, action_pot=res%action_pot,  &
+      action_kin=res%action_kin)
 
   end subroutine full_tunneling
 
