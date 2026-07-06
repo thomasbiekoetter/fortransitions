@@ -20,11 +20,16 @@ scripts in `reference/`, and this README.
   `V_spline_samples > 0`).
 - `pathDeformation.Deformation_Spline` → `deformation_spline`
   (without `save_all_steps`).
-- The required pieces of `helper_functions` (rkqs/rkck, Nbspld2, finite
+- The required pieces of `helper_functions` (Nbspld2, finite
   differences, ...) plus replacements for the scipy routines that the
   Python package relies on (brentq, fminbound/fmin, splprep/splrep via
   bspline-fortran, lstsq via normal equations, fractional-order Bessel
-  functions).
+  functions). The adaptive Cash-Karp Runge-Kutta stepper
+  (`helper_functions.rkqs`/`_rkck` in the Python package) is provided by
+  the [odeint](https://github.com/thomasbiekoetter/odeint) package
+  (`rkqs_vec` in `odeint__rkck`, which supports the per-component
+  tolerances and status-code error reporting that the shooting method
+  needs).
 
 Errors that the Python package raises as exceptions
 (`PotentialError`, `IntegrationError`, `DeformationError`) are reported

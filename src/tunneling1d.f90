@@ -12,7 +12,8 @@ module cosmotransitions__tunneling1d
   use cosmotransitions__config, only : err_no_barrier
   use cosmotransitions__config, only : err_stable
   use cosmotransitions__config, only : err_numerical
-  use cosmotransitions__helpers, only : rkqs
+  use odeint__rkck, only : rkqs_vec
+  use odeint__rkck, only : rkqs_ok
   use cosmotransitions__helpers, only : cubic_interp
   use cosmotransitions__helpers, only : linspace
   use cosmotransitions__helpers, only : simpson
@@ -441,7 +442,7 @@ contains
     real(wp) :: x
     real(wp), dimension(2) :: y0
     real(wp), dimension(2) :: y1
-    real(wp), dimension(2) :: dy
+    real(wp), allocatable :: dy(:)
     real(wp), dimension(2) :: dydr0
     real(wp), dimension(2) :: dydr1
     integer :: st
@@ -457,10 +458,11 @@ contains
     rmax_tot = rmax + r0
 
     do
-      call rkqs(y0, dydr0, r0, deriv, dr, epsfrac, epsabs, dy, dr_did,  &
-        drnext, st)
-      if (st /= status_ok) then
-        status = st
+      call rkqs_vec(deriv, r0, y0, dr, epsabs, epsfrac, dy, dr_did,  &
+        drnext, st, dydt0=dydr0)
+      if (st /= rkqs_ok) then
+        ! "Stepsize rounds down to zero."
+        status = err_integration
         return
       end if
       r1 = r0 + dr_did
@@ -518,12 +520,13 @@ contains
 
   contains
 
-    subroutine deriv(y_, r_, dydr_)
+    function deriv(y_, r_) result(dydr_)
       real(wp), intent(in) :: y_(:)
       real(wp), intent(in) :: r_
-      real(wp), intent(out) :: dydr_(:)
+      real(wp), allocatable :: dydr_(:)
+      allocate(dydr_(size(y_)))
       call self%equation_of_motion(y_, r_, dydr_)
-    end subroutine deriv
+    end function deriv
 
     function interp_dphi(x_) result(f_)
       real(wp), intent(in) :: x_
@@ -568,7 +571,7 @@ contains
     real(wp) :: x
     real(wp), dimension(2) :: y0
     real(wp), dimension(2) :: y1
-    real(wp), dimension(2) :: dy
+    real(wp), allocatable :: dy(:)
     real(wp), dimension(2) :: dydr0
     real(wp), dimension(2) :: dydr1
     real(wp), dimension(2) :: yx
@@ -590,10 +593,11 @@ contains
 
     i = 2
     do while (i <= n)
-      call rkqs(y0, dydr0, r0, deriv, dr, epsfrac, epsabs, dy, dr_did,  &
-        drnext, st)
-      if (st /= status_ok) then
-        status = st
+      call rkqs_vec(deriv, r0, y0, dr, epsabs, epsfrac, dy, dr_did,  &
+        drnext, st, dydt0=dydr0)
+      if (st /= rkqs_ok) then
+        ! "Stepsize rounds down to zero."
+        status = err_integration
         return
       end if
       if (dr_did >= drmin) then
@@ -631,12 +635,13 @@ contains
 
   contains
 
-    subroutine deriv(y_, r_, dydr_)
+    function deriv(y_, r_) result(dydr_)
       real(wp), intent(in) :: y_(:)
       real(wp), intent(in) :: r_
-      real(wp), intent(out) :: dydr_(:)
+      real(wp), allocatable :: dydr_(:)
+      allocate(dydr_(size(y_)))
       call self%equation_of_motion(y_, r_, dydr_)
-    end subroutine deriv
+    end function deriv
 
   end subroutine sfi_integrate_and_save_profile
 

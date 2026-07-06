@@ -2,10 +2,12 @@ module cosmotransitions__helpers
 !! Port of the parts of cosmoTransitions/helper_functions.py that are needed
 !! by pathDeformation.fullTunneling, plus a few small numerical utilities
 !! (trapezoid/Simpson integration, linear interpolation, least squares).
+!! The adaptive Cash-Karp Runge-Kutta stepper (helper_functions.rkqs/_rkck)
+!! is not ported here; the odeint package (rkqs_vec in odeint__rkck)
+!! provides it.
 
   use cosmotransitions__config, only : wp
   use cosmotransitions__config, only : status_ok
-  use cosmotransitions__config, only : err_integration
   use cosmotransitions__config, only : err_numerical
   use gradmin__linearsolve, only : gauss_jordan
 
@@ -13,9 +15,6 @@ module cosmotransitions__helpers
 
   private
 
-  public :: dydt_iface
-  public :: rkqs
-  public :: rkck
   public :: cubic_interp
   public :: deriv14_const_dx
   public :: nbspld2
@@ -26,139 +25,7 @@ module cosmotransitions__helpers
   public :: interp_linear
   public :: lstsq
 
-  abstract interface
-    subroutine dydt_iface(y, t, dydt)
-      !! Derivative function for the ODE integrators.
-      import :: wp
-      implicit none
-      real(wp), intent(in) :: y(:)
-      real(wp), intent(in) :: t
-      real(wp), intent(out) :: dydt(:)
-    end subroutine dydt_iface
-  end interface
-
 contains
-
-  subroutine rkqs(y, dydt, t, f, dt_try, epsfrac, epsabs, dy_out, dt_out,  &
-      dtnext, status)
-    !! Take a single 5th order Runge-Kutta step with error monitoring.
-    !! Port of helper_functions.rkqs (adapted from Numerical Recipes).
-    !! The step size dynamically changes such that the error in `y` is
-    !! smaller than the larger of `epsfrac` and `epsabs`.
-
-    real(wp), intent(in) :: y(:)
-    real(wp), intent(in) :: dydt(:)
-      !! Derivative at the start of the step; must satisfy dydt = f(y, t).
-    real(wp), intent(in) :: t
-    procedure(dydt_iface) :: f
-    real(wp), intent(in) :: dt_try
-      !! Initial guess for the step size.
-    real(wp), intent(in) :: epsfrac(:)
-    real(wp), intent(in) :: epsabs(:)
-      !! Maximum fractional and absolute errors, same size as `y`.
-    real(wp), intent(out) :: dy_out(:)
-      !! Change in `y` during this step.
-    real(wp), intent(out) :: dt_out
-      !! Change in `t` during this step.
-    real(wp), intent(out) :: dtnext
-      !! Best guess for the next step size.
-    integer, intent(out) :: status
-      !! `err_integration` if the step size rounds down to zero.
-
-    real(wp) :: dt
-    real(wp) :: errmax
-    real(wp) :: dttemp
-    real(wp) :: e1
-    real(wp) :: e2
-    real(wp), dimension(size(y)) :: dy
-    real(wp), dimension(size(y)) :: yerr
-    integer :: i
-
-    status = status_ok
-    dt = dt_try
-    do
-      call rkck(y, dydt, t, f, dt, dy, yerr)
-      errmax = 0.0_wp
-      do i = 1, size(y)
-        e1 = abs(yerr(i)/epsabs(i))
-        e2 = abs(yerr(i))/((abs(y(i)) + 1.0e-300_wp)*epsfrac(i))
-        errmax = max(errmax, min(e1, e2))
-      end do
-      if (errmax < 1.0_wp) exit  ! Step succeeded
-      dttemp = 0.9_wp*dt*errmax**(-0.25_wp)
-      if (dt > 0.0_wp) then
-        dt = max(dttemp, 0.1_wp*dt)
-      else
-        dt = min(dttemp, 0.1_wp*dt)
-      end if
-      if (t + dt == t) then
-        ! "Stepsize rounds down to zero."
-        status = err_integration
-        return
-      end if
-    end do
-    if (errmax > 1.89e-4_wp) then
-      dtnext = 0.9_wp*dt*errmax**(-0.2_wp)
-    else
-      dtnext = 5.0_wp*dt
-    end if
-    dy_out = dy
-    dt_out = dt
-
-  end subroutine rkqs
-
-  subroutine rkck(y, dydt, t, f, dt, dyout, yerr)
-    !! Take one 5th-order Cash-Karp Runge-Kutta step.
-    !! Port of helper_functions._rkck.
-
-    real(wp), intent(in) :: y(:)
-    real(wp), intent(in) :: dydt(:)
-    real(wp), intent(in) :: t
-    procedure(dydt_iface) :: f
-    real(wp), intent(in) :: dt
-    real(wp), intent(out) :: dyout(:)
-      !! The change in `y` during this step.
-    real(wp), intent(out) :: yerr(:)
-      !! An error estimate for `y`.
-
-    real(wp), parameter :: a2 = 0.2_wp, a3 = 0.3_wp, a4 = 0.6_wp,  &
-      a5 = 1.0_wp, a6 = 0.875_wp
-    real(wp), parameter :: b21 = 0.2_wp
-    real(wp), parameter :: b31 = 3.0_wp/40.0_wp, b32 = 9.0_wp/40.0_wp
-    real(wp), parameter :: b41 = 0.3_wp, b42 = -0.9_wp, b43 = 1.2_wp
-    real(wp), parameter :: b51 = -11.0_wp/54.0_wp, b52 = 2.5_wp,  &
-      b53 = -70.0_wp/27.0_wp, b54 = 35.0_wp/27.0_wp
-    real(wp), parameter :: b61 = 1631.0_wp/55296.0_wp,  &
-      b62 = 175.0_wp/512.0_wp, b63 = 575.0_wp/13824.0_wp,  &
-      b64 = 44275.0_wp/110592.0_wp, b65 = 253.0_wp/4096.0_wp
-    real(wp), parameter :: c1 = 37.0_wp/378.0_wp, c3 = 250.0_wp/621.0_wp,  &
-      c4 = 125.0_wp/594.0_wp, c6 = 512.0_wp/1771.0_wp
-    real(wp), parameter :: dc5 = -277.0_wp/14336.0_wp
-    real(wp), parameter :: dc1 = c1 - 2825.0_wp/27648.0_wp,  &
-      dc3 = c3 - 18575.0_wp/48384.0_wp, dc4 = c4 - 13525.0_wp/55296.0_wp,  &
-      dc6 = c6 - 0.25_wp
-
-    real(wp), dimension(size(y)) :: ytemp
-    real(wp), dimension(size(y)) :: ak2
-    real(wp), dimension(size(y)) :: ak3
-    real(wp), dimension(size(y)) :: ak4
-    real(wp), dimension(size(y)) :: ak5
-    real(wp), dimension(size(y)) :: ak6
-
-    ytemp = y + b21*dt*dydt
-    call f(ytemp, t + a2*dt, ak2)
-    ytemp = y + dt*(b31*dydt + b32*ak2)
-    call f(ytemp, t + a3*dt, ak3)
-    ytemp = y + dt*(b41*dydt + b42*ak2 + b43*ak3)
-    call f(ytemp, t + a4*dt, ak4)
-    ytemp = y + dt*(b51*dydt + b52*ak2 + b53*ak3 + b54*ak4)
-    call f(ytemp, t + a5*dt, ak5)
-    ytemp = y + dt*(b61*dydt + b62*ak2 + b63*ak3 + b64*ak4 + b65*ak5)
-    call f(ytemp, t + a6*dt, ak6)
-    dyout = dt*(c1*dydt + c3*ak3 + c4*ak4 + c6*ak6)
-    yerr = dt*(dc1*dydt + dc3*ak3 + dc4*ak4 + dc5*ak5 + dc6*ak6)
-
-  end subroutine rkck
 
   pure function cubic_interp(t, y0, dy0, y1, dy1) result(y)
     !! Cubic interpolation between two points, given the values and the
