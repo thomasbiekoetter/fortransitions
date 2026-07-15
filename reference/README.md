@@ -9,12 +9,14 @@ positions, radial scales) that the Fortran test programs assert against:
 | -------------------- | ----------------------------- |
 | `ref_check.py`       | `test/check.f90`              |
 | `ref_double_well.py` | `test/double_well.f90`        |
+| `ref_many_fields.py` | `test/many_fields.f90`        |
 
 Run them with
 
 ```sh
 python3 ref_check.py
 python3 ref_double_well.py
+python3 ref_many_fields.py
 ```
 
 The scripts require the `cosmoTransitions` package to be importable

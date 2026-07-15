@@ -17,7 +17,11 @@ scripts in `reference/`, and this README.
 - `tunneling1D.SingleFieldInstanton` → `single_field_instanton`:
   one-dimensional instantons via the overshoot/undershoot method.
 - `pathDeformation.SplinePath` → `spline_path` (spline mode only, i.e.
-  `V_spline_samples > 0`).
+  `V_spline_samples > 0`). Unlike the Python class, which inherits a
+  hard limit of 10 field dimensions from `scipy.interpolate.splprep`
+  (FITPACK's `parcur`), the port fits each field dimension as its own
+  1d B-spline and works for any number of fields
+  (`test/many_fields.f90` exercises up to 20).
 - `pathDeformation.Deformation_Spline` → `deformation_spline`
   (without `save_all_steps`).
 - The required pieces of `helper_functions` (Nbspld2, finite
