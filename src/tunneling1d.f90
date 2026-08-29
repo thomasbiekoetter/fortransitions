@@ -461,7 +461,7 @@ contains
       call rkqs_vec(deriv, r0, y0, dr, epsabs, epsfrac, dy, dr_did,  &
         drnext, st, dydt0=dydr0)
       if (st /= rkqs_ok) then
-        ! "Stepsize rounds down to zero."
+        ! Step size underflow/overflow or too many step reductions.
         status = err_integration
         return
       end if
@@ -596,7 +596,7 @@ contains
       call rkqs_vec(deriv, r0, y0, dr, epsabs, epsfrac, dy, dr_did,  &
         drnext, st, dydt0=dydr0)
       if (st /= rkqs_ok) then
-        ! "Stepsize rounds down to zero."
+        ! Step size underflow/overflow or too many step reductions.
         status = err_integration
         return
       end if
@@ -621,6 +621,17 @@ contains
           exit
         end if
       end do
+      if (i <= n) then
+        if (.not. (r_array(i) > r1)) then
+          ! The next output radius is not strictly ahead of the integrator
+          ! (degenerate grid, e.g. rf <= r0 or spacing below one ULP, or a
+          ! NaN). It can then never be filled, and the step size would grow
+          ! without bound (until rkqs_vec reports rkqs_err_overflow). Bail
+          ! out right away instead.
+          status = err_integration
+          return
+        end if
+      end if
       ! Advance the integration variables.
       r0 = r1
       y0 = y1
