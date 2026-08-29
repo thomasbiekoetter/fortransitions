@@ -26,5 +26,9 @@ module cosmotransitions__config
     !! pathDeformation.DeformationError
   integer, parameter, public :: err_numerical = 5
     !! Generic numerical failure (root finding, linear solve, spline setup...)
+  integer, parameter, public :: err_spline = 6
+    !! A bspline-fortran evaluation failed (nonzero iflag), e.g. the zero
+    !! denominator in the de Boor recursion (iflag 407) that occurs when a
+    !! spline is extrapolated extremely far outside its knot interval.
 
 end module cosmotransitions__config

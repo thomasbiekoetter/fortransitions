@@ -57,6 +57,12 @@ module cosmotransitions__splinepath
       !! One interpolant per field dimension, knotted by path distance.
     type(bspline_1d) :: v_spl
       !! Interpolant of the potential along the path.
+    integer(ip) :: eval_iflag = 0_ip
+      !! Sticky error flag: the first nonzero iflag returned by any
+      !! bspline evaluation (v, dv, d2v, pts, path speed). The evaluation
+      !! functions have no status argument (they implement the
+      !! potential_1d interface), so errors are recorded here and checked
+      !! by full_tunneling after each stage. Reset by init.
   contains
     procedure :: init => spline_path_init
     procedure :: v => spline_path_v
@@ -122,6 +128,7 @@ contains
     integer :: st
 
     status = status_ok
+    self%eval_iflag = 0_ip
     nsamples = 100
     if (present(v_spline_samples)) nsamples = v_spline_samples
     extend_ = .false.
@@ -361,6 +368,7 @@ contains
     speed = 0.0_wp
     do d = 1, self%ndim
       call self%path_spl(d)%evaluate(x, 1_ip, dp, iflag)
+      if (iflag /= 0_ip .and. self%eval_iflag == 0_ip) self%eval_iflag = iflag
       speed = speed + dp*dp
     end do
     speed = sqrt(speed)
@@ -377,6 +385,7 @@ contains
     integer(ip) :: iflag
 
     call self%v_spl%evaluate(phi, 0_ip, y, iflag)
+    if (iflag /= 0_ip .and. self%eval_iflag == 0_ip) self%eval_iflag = iflag
 
   end function spline_path_v
 
@@ -390,6 +399,7 @@ contains
     integer(ip) :: iflag
 
     call self%v_spl%evaluate(phi, 1_ip, y, iflag)
+    if (iflag /= 0_ip .and. self%eval_iflag == 0_ip) self%eval_iflag = iflag
 
   end function spline_path_dv
 
@@ -403,6 +413,7 @@ contains
     integer(ip) :: iflag
 
     call self%v_spl%evaluate(phi, 2_ip, y, iflag)
+    if (iflag /= 0_ip .and. self%eval_iflag == 0_ip) self%eval_iflag = iflag
 
   end function spline_path_d2v
 
@@ -418,6 +429,7 @@ contains
 
     do d = 1, self%ndim
       call self%path_spl(d)%evaluate(x, 0_ip, p(d), iflag)
+      if (iflag /= 0_ip .and. self%eval_iflag == 0_ip) self%eval_iflag = iflag
     end do
 
   end function spline_path_pts

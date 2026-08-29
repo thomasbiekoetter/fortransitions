@@ -16,6 +16,7 @@ module cosmotransitions
   use cosmotransitions__config, only : err_stable
   use cosmotransitions__config, only : err_deformation
   use cosmotransitions__config, only : err_numerical
+  use cosmotransitions__config, only : err_spline
   use cosmotransitions__potentials, only : potential_1d
   use cosmotransitions__potentials, only : potential_nd
   use cosmotransitions__potentials, only : pot1d_func
@@ -38,6 +39,7 @@ module cosmotransitions
   public :: err_stable
   public :: err_deformation
   public :: err_numerical
+  public :: err_spline
   ! Potential interfaces
   public :: potential_1d
   public :: potential_nd

@@ -9,6 +9,7 @@ module cosmotransitions__pathdeformation
   use cosmotransitions__config, only : wp
   use cosmotransitions__config, only : status_ok
   use cosmotransitions__config, only : err_deformation
+  use cosmotransitions__config, only : err_spline
   use cosmotransitions__potentials, only : potential_nd
   use cosmotransitions__tunneling1d, only : single_field_instanton
   use cosmotransitions__tunneling1d, only : profile1d
@@ -143,18 +144,33 @@ contains
       ! 1. Fit the spline to the path.
       call path%init(pts, pot, st, v_spline_samples=v_spline_samples,  &
         extend_to_minima=.true., reeval_distances=.true.)
+      if (path%eval_iflag /= 0) then
+        status = err_spline
+        return
+      end if
       if (st /= status_ok) then
         status = st
         return
       end if
       ! 2. Do 1d tunneling along the path.
       call tobj%init(0.0_wp, path%length, path, st, alpha=alpha)
+      if (path%eval_iflag /= 0) then
+        status = err_spline
+        return
+      end if
       if (st /= status_ok) then
         status = st
         return
       end if
       call tobj%find_profile(prof, st, npoints=npoints, xtol=xtol,  &
         phitol=phitol)
+      ! A broken spline evaluation (e.g. extreme extrapolation, bspline
+      ! iflag 407) usually also derails the integration, so report it
+      ! with priority over the profile status.
+      if (path%eval_iflag /= 0) then
+        status = err_spline
+        return
+      end if
       if (st /= status_ok) then
         status = st
         return
@@ -165,6 +181,10 @@ contains
       dphi(size(dphi)) = 0.0_wp  ! enforce this
       ! 3. Deform the path.
       pts = path%pts_many(phi)  ! multi-dimensional points
+      if (path%eval_iflag /= 0) then
+        status = err_spline
+        return
+      end if
       call deform_obj%init(pts, dphi, pot, st, nb=nb, kb=kb,  &
         fix_start=fix_start, fix_end=fix_end)
       if (st /= status_ok) then
@@ -215,6 +235,10 @@ contains
     res%phi = path%pts_many(prof%phi)
     res%action = tobj%find_action(prof, action_pot=res%action_pot,  &
       action_kin=res%action_kin)
+    if (path%eval_iflag /= 0) then
+      status = err_spline
+      return
+    end if
 
   end subroutine full_tunneling
 
