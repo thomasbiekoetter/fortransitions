@@ -293,8 +293,12 @@ contains
         phi = phi + term
         dphi = dphi + term*real(2*k, wp)
       end do
-      phi = phi*0.25_wp*gamma(nu + 1.0_wp)*r*r*dv*s
-      dphi = dphi*0.25_wp*gamma(nu + 1.0_wp)*r*dv*s
+      ! Fold dv into the product before the second factor of r: near a
+      ! degenerate minimum dv can be tiny while r is huge, and the
+      ! intermediate r*r then overflows even though the mathematical
+      ! result r*r*dv is small.
+      phi = phi*(0.25_wp*gamma(nu + 1.0_wp)*dv*s*r)*r
+      dphi = dphi*0.25_wp*gamma(nu + 1.0_wp)*dv*s*r
       phi = phi + phi0
     else if (d2v > 0.0_wp) then
       iv = besseli_nu(nu, beta_r)
@@ -365,9 +369,11 @@ contains
     do
       rlast = r
       r = r*10.0_wp
-      if (r > 1.0e250_wp) then
+      if (r > 1.0e150_wp) then
         ! In Python r runs off to infinity here; treat it as a failure to
-        ! find initial conditions.
+        ! find initial conditions. The threshold also keeps every
+        ! expression in exact_solution (and the integration started from
+        ! r0) safely below the overflow limit.
         status = err_numerical
         return
       end if
