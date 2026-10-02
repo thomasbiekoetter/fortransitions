@@ -15,6 +15,7 @@ module check__potentials
   public :: v2_thick
   public :: dv2_thick
   public :: example_potential
+  public :: narrow_barrier_potential
 
   type, extends(potential_nd) :: example_potential
     !! The two-dimensional potential of examples/fullTunneling.py.
@@ -26,7 +27,37 @@ module check__potentials
     procedure :: grad => example_grad
   end type example_potential
 
+  type, extends(potential_nd) :: narrow_barrier_potential
+    !! Two fields with a curved valley y = g x^2 and, along it, a barrier
+    !! at x = b, very close to the metastable minimum at the origin:
+    !!   V = a (x^4/4 - (1+b) x^3/3 + b x^2/2) + (y - g x^2)^2.
+    !! The true minimum is at (1, g).
+    real(wp) :: a = 1.0_wp
+    real(wp) :: b = 0.004_wp
+    real(wp) :: g = 0.3_wp
+  contains
+    procedure :: v => narrow_v
+    procedure :: grad => narrow_grad
+  end type narrow_barrier_potential
+
 contains
+
+  function narrow_v(self, x) result(y)
+    class(narrow_barrier_potential), intent(inout) :: self
+    real(wp), intent(in) :: x(:)
+    real(wp) :: y
+    y = self%a*(0.25_wp*x(1)**4 - (1.0_wp + self%b)*x(1)**3/3.0_wp  &
+      + 0.5_wp*self%b*x(1)**2) + (x(2) - self%g*x(1)**2)**2
+  end function narrow_v
+
+  function narrow_grad(self, x) result(dv)
+    class(narrow_barrier_potential), intent(inout) :: self
+    real(wp), intent(in) :: x(:)
+    real(wp) :: dv(size(x))
+    dv(1) = self%a*x(1)*(x(1) - self%b)*(x(1) - 1.0_wp)  &
+      - 4.0_wp*self%g*x(1)*(x(2) - self%g*x(1)**2)
+    dv(2) = 2.0_wp*(x(2) - self%g*x(1)**2)
+  end function narrow_grad
 
   function v1_thin(phi) result(y)
     real(wp), intent(in) :: phi
@@ -90,6 +121,9 @@ program check
 !!   1d thick-walled: action = 6.6489883968e+00
 !!   2d thin-walled:  action = 1.7669376756e+03
 !!   2d thick-walled: action = 4.5036661308e+00
+!!   2d narrow barrier near the metastable minimum, potential evaluated
+!!   directly along the path (V_spline_samples=None, xtol = phitol =
+!!   1e-9): action = 1.11271076e-02 (1.112710819e-02 with 10000 samples)
 !!
 !! The tolerances are loose-ish (0.5%) because the Fortran port uses
 !! different spline knots (bspline-fortran vs. FITPACK) and a slightly
@@ -108,6 +142,7 @@ program check
   use check__potentials, only : v2_thick
   use check__potentials, only : dv2_thick
   use check__potentials, only : example_potential
+  use check__potentials, only : narrow_barrier_potential
 
   implicit none
 
@@ -117,6 +152,7 @@ program check
 
   call test_1d()
   call test_2d()
+  call test_narrow_barrier()
 
   if (nfail > 0) then
     print "(a,i0,a)", "FAILED: ", nfail, " test(s) failed."
@@ -198,6 +234,39 @@ contains
       4.5036661308_wp, 5.0e-3_wp)
 
   end subroutine test_2d
+
+  subroutine test_narrow_barrier()
+    !! Direct evaluation of the potential along the path
+    !! (v_spline_samples = 0) for a barrier very close to the metastable
+    !! minimum, which the default potential spline (100 samples) does not
+    !! resolve well.
+
+    type(narrow_barrier_potential), target :: pot
+    type(full_tunneling_result) :: res
+    real(wp) :: path_pts(2, 2)
+    integer :: status
+
+    path_pts(1, :) = [1.0_wp, pot%g]
+    path_pts(2, :) = [0.0_wp, 0.0_wp]
+
+    call full_tunneling(path_pts, pot, res, status, xtol=1.0e-9_wp,  &
+      phitol=1.0e-9_wp)
+    print "(a,i0,a,es16.8,a,2es16.8)", "narrow barrier, spline (100 "//  &
+      "samples): status ", status, ", action ", res%action,  &
+      ", Derrick ", res%action_pot, res%action_kin
+
+    call full_tunneling(path_pts, pot, res, status, xtol=1.0e-9_wp,  &
+      phitol=1.0e-9_wp, v_spline_samples=0)
+    call assert_status("narrow barrier, direct: full_tunneling", status)
+    call assert_true("narrow barrier, direct: converged", res%converged)
+    call assert_close("narrow barrier, direct: action", res%action,  &
+      1.11271076e-2_wp, 1.0e-3_wp)
+    call assert_close("narrow barrier, direct: Derrick (potential term)",  &
+      res%action_pot, res%action, 1.0e-3_wp)
+    call assert_close("narrow barrier, direct: Derrick (kinetic term)",  &
+      res%action_kin, res%action, 1.0e-3_wp)
+
+  end subroutine test_narrow_barrier
 
   subroutine assert_status(name, status)
 

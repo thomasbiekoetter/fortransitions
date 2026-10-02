@@ -16,8 +16,17 @@ scripts in `reference/`, and this README.
   instanton calculation via iterative path deformation.
 - `tunneling1D.SingleFieldInstanton` → `single_field_instanton`:
   one-dimensional instantons via the overshoot/undershoot method.
-- `pathDeformation.SplinePath` → `spline_path` (spline mode only, i.e.
-  `V_spline_samples > 0`). Unlike the Python class, which inherits a
+- `pathDeformation.SplinePath` → `spline_path`, in the spline mode
+  (`v_spline_samples > 0`, default 100 as in Python) and in the direct
+  mode (`v_spline_samples <= 0`, `V_spline_samples=None` in Python),
+  which evaluates V and its gradient along the path instead of a spline
+  of V; d²V/dx² is taken from a central difference of the exact dV/dx
+  (Python: finite differences of V). Use the direct mode if the barrier
+  is narrow compared to the path length, e.g. very close to the
+  metastable minimum: 100 samples of V then do not resolve it, which
+  can make the one-dimensional tunneling fail ("no barrier") or give
+  inconsistent profiles (`test/check.f90` has such a case). Unlike the
+  Python class, which inherits a
   hard limit of 10 field dimensions from `scipy.interpolate.splprep`
   (FITPACK's `parcur`), the port fits each field dimension as its own
   1d B-spline and works for any number of fields

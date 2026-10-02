@@ -78,6 +78,9 @@ contains
       !! (default false).
     integer, intent(in), optional :: v_spline_samples
       !! Number of potential samples for the path spline (default 100).
+      !! Zero or negative: evaluate the potential directly along the path
+      !! (V_spline_samples=None in Python), which resolves narrow
+      !! barriers, e.g. very close to the metastable minimum.
     real(wp), intent(in), optional :: alpha
       !! Friction coefficient for the 1d tunneling (default 2).
     integer, intent(in), optional :: npoints

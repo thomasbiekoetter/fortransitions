@@ -56,7 +56,17 @@ module cosmotransitions__splinepath
     type(bspline_1d), allocatable :: path_spl(:)
       !! One interpolant per field dimension, knotted by path distance.
     type(bspline_1d) :: v_spl
-      !! Interpolant of the potential along the path.
+      !! Interpolant of the potential along the path (not used in the
+      !! direct mode).
+    logical :: direct = .false.
+      !! Direct mode (v_spline_samples <= 0, V_spline_samples=None in
+      !! Python): V is evaluated directly at the points of the path
+      !! spline instead of being interpolated.
+    class(potential_nd), pointer :: pot => null()
+      !! The multi-field potential (direct mode only).
+    real(wp) :: d2v_step = 0.0_wp
+      !! Step of the central difference of dV/dx for d2V/dx2 (direct
+      !! mode only).
     integer(ip) :: eval_iflag = 0_ip
       !! Sticky error flag: the first nonzero iflag returned by any
       !! bspline evaluation (v, dv, d2v, pts, path speed). The evaluation
@@ -81,12 +91,20 @@ contains
     class(spline_path), intent(inout) :: self
     real(wp), intent(in) :: pts_in(:, :)
       !! The points that describe the path, shape (num_points, ndim).
-    class(potential_nd), intent(inout) :: pot
-      !! The full multi-field potential.
+    class(potential_nd), intent(inout), target :: pot
+      !! The full multi-field potential. In the direct mode, the path
+      !! keeps a pointer to it, so it must stay alive while the path is
+      !! used.
     integer, intent(out) :: status
     integer, intent(in), optional :: v_spline_samples
       !! Number of samples along the path used to build the potential
-      !! spline (default 100).
+      !! spline (default 100). If zero or negative, the potential is
+      !! evaluated directly along the path (V_spline_samples=None in
+      !! Python): V(x) = V(p(x)), dV/dx = grad V . dp/dx, and d2V/dx2 by
+      !! a central difference of dV/dx. This resolves arbitrarily narrow
+      !! features of the potential along the path, e.g. a barrier very
+      !! close to one of the minima, at the cost of evaluating V and its
+      !! gradient during the one-dimensional tunneling.
     logical, intent(in), optional :: extend_to_minima
       !! If true, extend the path at both ends until it hits local minima
       !! (default false).
@@ -250,11 +268,16 @@ contains
       end do
     end if
 
-    ! Now make the potential spline.
-    if (nsamples <= 0) then
-      error stop "spline_path_init: v_spline_samples must be positive "//  &
-        "(the V_spline_samples=None mode of the Python class is not ported)"
+    ! Direct mode: no potential spline.
+    self%direct = nsamples <= 0
+    if (self%direct) then
+      self%pot => pot
+      self%d2v_step = 1.0e-6_wp*self%length
+      return
     end if
+    self%pot => null()
+
+    ! Now make the potential spline.
     xs = linspace(0.0_wp, self%length, nsamples)
     ! Extend 20% beyond the path so that we more accurately model the
     ! path end points.
@@ -375,6 +398,23 @@ contains
 
   end function path_speed
 
+  function path_tangent(self, x) result(dp)
+    !! dp/dx along the path spline.
+
+    class(spline_path), intent(inout) :: self
+    real(wp), intent(in) :: x
+    real(wp) :: dp(self%ndim)
+
+    integer :: d
+    integer(ip) :: iflag
+
+    do d = 1, self%ndim
+      call self%path_spl(d)%evaluate(x, 1_ip, dp(d), iflag)
+      if (iflag /= 0_ip .and. self%eval_iflag == 0_ip) self%eval_iflag = iflag
+    end do
+
+  end function path_tangent
+
   function spline_path_v(self, phi) result(y)
     !! The potential as a function of the distance `phi` along the path.
 
@@ -384,6 +424,10 @@ contains
 
     integer(ip) :: iflag
 
+    if (self%direct) then
+      y = self%pot%v(self%pts(phi))
+      return
+    end if
     call self%v_spl%evaluate(phi, 0_ip, y, iflag)
     if (iflag /= 0_ip .and. self%eval_iflag == 0_ip) self%eval_iflag = iflag
 
@@ -398,6 +442,10 @@ contains
 
     integer(ip) :: iflag
 
+    if (self%direct) then
+      y = dot_product(self%pot%grad(self%pts(phi)), path_tangent(self, phi))
+      return
+    end if
     call self%v_spl%evaluate(phi, 1_ip, y, iflag)
     if (iflag /= 0_ip .and. self%eval_iflag == 0_ip) self%eval_iflag = iflag
 
@@ -411,7 +459,14 @@ contains
     real(wp) :: y
 
     integer(ip) :: iflag
+    real(wp) :: h
 
+    if (self%direct) then
+      h = self%d2v_step
+      y = (spline_path_dv(self, phi + h) - spline_path_dv(self, phi - h))  &
+        /(2.0_wp*h)
+      return
+    end if
     call self%v_spl%evaluate(phi, 2_ip, y, iflag)
     if (iflag /= 0_ip .and. self%eval_iflag == 0_ip) self%eval_iflag = iflag
 
