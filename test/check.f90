@@ -237,7 +237,7 @@ contains
 
   subroutine test_narrow_barrier()
     !! Direct evaluation of the potential along the path
-    !! (v_spline_samples = 0) for a barrier very close to the metastable
+    !! (v_mode = "direct") for a barrier very close to the metastable
     !! minimum, which the default potential spline (100 samples) does not
     !! resolve well.
 
@@ -256,7 +256,7 @@ contains
       ", Derrick ", res%action_pot, res%action_kin
 
     call full_tunneling(path_pts, pot, res, status, xtol=1.0e-9_wp,  &
-      phitol=1.0e-9_wp, v_spline_samples=0)
+      phitol=1.0e-9_wp, v_mode="direct")
     call assert_status("narrow barrier, direct: full_tunneling", status)
     call assert_true("narrow barrier, direct: converged", res%converged)
     call assert_close("narrow barrier, direct: action", res%action,  &

@@ -55,7 +55,7 @@ contains
 
   subroutine full_tunneling(path_pts, pot, res, status, maxiter, verbose,  &
       v_spline_samples, alpha, npoints, nb, kb, fix_start, fix_end,  &
-      deform_verbose, xtol, phitol)
+      deform_verbose, xtol, phitol, v_mode)
     !! Calculate the instanton solution in multiple field dimensions.
     !! Port of pathDeformation.fullTunneling (with the default
     !! tunneling_class = SingleFieldInstanton and
@@ -77,10 +77,8 @@ contains
       !! If true, print a message at the start of each iteration
       !! (default false).
     integer, intent(in), optional :: v_spline_samples
-      !! Number of potential samples for the path spline (default 100).
-      !! Zero or negative: evaluate the potential directly along the path
-      !! (V_spline_samples=None in Python), which resolves narrow
-      !! barriers, e.g. very close to the metastable minimum.
+      !! Number of potential samples for the path spline (default 100;
+      !! must be positive). Ignored if v_mode = "direct".
     real(wp), intent(in), optional :: alpha
       !! Friction coefficient for the 1d tunneling (default 2).
     integer, intent(in), optional :: npoints
@@ -107,6 +105,14 @@ contains
     real(wp), intent(in), optional :: phitol
       !! Fractional error tolerance of the profile integration in the 1d
       !! tunneling (default 1e-4, like Python). See `xtol`.
+    character(len=*), intent(in), optional :: v_mode
+      !! How the potential along the path is obtained (see spline_path):
+      !! "spline" (default, like Python) interpolates v_spline_samples
+      !! samples of V; "direct" (V_spline_samples=None in Python)
+      !! evaluates V and its gradient directly along the path. Use
+      !! "direct" if the barrier is narrow compared to the path length,
+      !! e.g. very close to the metastable minimum, where 100 samples do
+      !! not resolve it.
 
     integer :: maxiter_
     logical :: verbose_
@@ -146,7 +152,7 @@ contains
       if (verbose_) print "(a,i0)", "Starting tunneling step ", num_iter
       ! 1. Fit the spline to the path.
       call path%init(pts, pot, st, v_spline_samples=v_spline_samples,  &
-        extend_to_minima=.true., reeval_distances=.true.)
+        v_mode=v_mode, extend_to_minima=.true., reeval_distances=.true.)
       if (path%eval_iflag /= 0) then
         status = err_spline
         return

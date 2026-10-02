@@ -59,7 +59,7 @@ module cosmotransitions__splinepath
       !! Interpolant of the potential along the path (not used in the
       !! direct mode).
     logical :: direct = .false.
-      !! Direct mode (v_spline_samples <= 0, V_spline_samples=None in
+      !! Direct mode (v_mode = "direct", V_spline_samples=None in
       !! Python): V is evaluated directly at the points of the path
       !! spline instead of being interpolated.
     class(potential_nd), pointer :: pot => null()
@@ -85,7 +85,7 @@ module cosmotransitions__splinepath
 contains
 
   subroutine spline_path_init(self, pts_in, pot, status, v_spline_samples,  &
-      extend_to_minima, reeval_distances)
+      extend_to_minima, reeval_distances, v_mode)
     !! Port of SplinePath.__init__.
 
     class(spline_path), intent(inout) :: self
@@ -98,19 +98,26 @@ contains
     integer, intent(out) :: status
     integer, intent(in), optional :: v_spline_samples
       !! Number of samples along the path used to build the potential
-      !! spline (default 100). If zero or negative, the potential is
-      !! evaluated directly along the path (V_spline_samples=None in
-      !! Python): V(x) = V(p(x)), dV/dx = grad V . dp/dx, and d2V/dx2 by
-      !! a central difference of dV/dx. This resolves arbitrarily narrow
-      !! features of the potential along the path, e.g. a barrier very
-      !! close to one of the minima, at the cost of evaluating V and its
-      !! gradient during the one-dimensional tunneling.
+      !! spline in the spline mode (default 100; must be positive).
+      !! Ignored in the direct mode.
     logical, intent(in), optional :: extend_to_minima
       !! If true, extend the path at both ends until it hits local minima
       !! (default false).
     logical, intent(in), optional :: reeval_distances
       !! If true, get more accurate knot distances by integrating along
       !! the spline (default true).
+    character(len=*), intent(in), optional :: v_mode
+      !! How the potential along the path is obtained:
+      !! - "spline" (default, like Python's default): V is sampled at
+      !!   v_spline_samples points along the path and interpolated by a
+      !!   spline;
+      !! - "direct" (V_spline_samples=None in Python): V is evaluated
+      !!   directly along the path, V(x) = V(p(x)) and
+      !!   dV/dx = grad V . dp/dx, with d2V/dx2 from a central difference
+      !!   of dV/dx. This resolves arbitrarily narrow features of the
+      !!   potential along the path, e.g. a barrier very close to one of
+      !!   the minima, at the cost of evaluating V and its gradient during
+      !!   the one-dimensional tunneling.
 
     integer :: nsamples
     logical :: extend_
@@ -147,8 +154,24 @@ contains
 
     status = status_ok
     self%eval_iflag = 0_ip
+    self%direct = .false.
+    if (present(v_mode)) then
+      select case (v_mode)
+      case ("spline")
+        self%direct = .false.
+      case ("direct")
+        self%direct = .true.
+      case default
+        error stop "spline_path_init: v_mode must be ""spline"" or "//  &
+          """direct"""
+      end select
+    end if
     nsamples = 100
     if (present(v_spline_samples)) nsamples = v_spline_samples
+    if (.not. self%direct .and. nsamples <= 0) then
+      error stop "spline_path_init: v_spline_samples must be positive "//  &
+        "(use v_mode = ""direct"" to evaluate V directly)"
+    end if
     extend_ = .false.
     if (present(extend_to_minima)) extend_ = extend_to_minima
     reeval_ = .true.
@@ -269,7 +292,6 @@ contains
     end if
 
     ! Direct mode: no potential spline.
-    self%direct = nsamples <= 0
     if (self%direct) then
       self%pot => pot
       self%d2v_step = 1.0e-6_wp*self%length

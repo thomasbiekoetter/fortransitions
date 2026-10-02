@@ -16,18 +16,19 @@ scripts in `reference/`, and this README.
   instanton calculation via iterative path deformation.
 - `tunneling1D.SingleFieldInstanton` → `single_field_instanton`:
   one-dimensional instantons via the overshoot/undershoot method.
-- `pathDeformation.SplinePath` → `spline_path`, in the spline mode
-  (`v_spline_samples > 0`, default 100 as in Python) and in the direct
-  mode (`v_spline_samples <= 0`, `V_spline_samples=None` in Python),
-  which evaluates V and its gradient along the path instead of a spline
-  of V; d²V/dx² is taken from a central difference of the exact dV/dx
-  (Python: finite differences of V). Use the direct mode if the barrier
-  is narrow compared to the path length, e.g. very close to the
-  metastable minimum: 100 samples of V then do not resolve it, which
-  can make the one-dimensional tunneling fail ("no barrier") or give
-  inconsistent profiles (`test/check.f90` has such a case). Unlike the
-  Python class, which inherits a
-  hard limit of 10 field dimensions from `scipy.interpolate.splprep`
+- `pathDeformation.SplinePath` → `spline_path`, with two modes selected
+  by the optional argument `v_mode` of `full_tunneling` (and
+  `spline_path%init`): `"spline"` (default, like Python) interpolates
+  `v_spline_samples` samples of V along the path (default 100), and
+  `"direct"` (`V_spline_samples=None` in Python) evaluates V and its
+  gradient directly along the path; d²V/dx² is taken from a central
+  difference of the exact dV/dx (Python: finite differences of V). Use
+  `v_mode = "direct"` if the barrier is narrow compared to the path
+  length, e.g. very close to the metastable minimum: 100 samples of V
+  then do not resolve it, which can make the one-dimensional tunneling
+  fail ("no barrier") or give inconsistent profiles (`test/check.f90`
+  has such a case). Unlike the Python class, which inherits a hard limit
+  of 10 field dimensions from `scipy.interpolate.splprep`
   (FITPACK's `parcur`), the port fits each field dimension as its own
   1d B-spline and works for any number of fields
   (`test/many_fields.f90` exercises up to 20).
