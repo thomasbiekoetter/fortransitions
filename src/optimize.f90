@@ -1,13 +1,13 @@
-module cosmotransitions__optimize
+module fortransitions__optimize
 !! One-dimensional root finding and minimization, replacing the
 !! scipy.optimize routines used by the Python package:
 !!   brentq            -> brentq
 !!   fminbound         -> minimize_bounded
 !!   fmin (1d usage)   -> minimize_unbounded (bracket + bounded Brent)
 
-  use cosmotransitions__config, only : wp
-  use cosmotransitions__config, only : status_ok
-  use cosmotransitions__config, only : err_numerical
+  use fortransitions__config, only : wp
+  use fortransitions__config, only : status_ok
+  use fortransitions__config, only : err_numerical
 
   implicit none
 
@@ -443,4 +443,4 @@ contains
 
   end function sgn
 
-end module cosmotransitions__optimize
+end module fortransitions__optimize

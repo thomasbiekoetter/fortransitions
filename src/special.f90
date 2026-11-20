@@ -1,12 +1,12 @@
-module cosmotransitions__special
+module fortransitions__special
 !! Bessel functions of (possibly) fractional order, replacing
 !! scipy.special.iv and scipy.special.jv in tunneling1D.exactSolution.
 !! For the instanton problem the order is nu = (alpha - 1)/2 with alpha the
 !! friction coefficient, so nu and nu +- 1 are typically half-integers
 !! (alpha = 2) or integers (alpha = 1, 3).
 
-  use cosmotransitions__config, only : wp
-  use cosmotransitions__config, only : pi
+  use fortransitions__config, only : wp
+  use fortransitions__config, only : pi
 
   implicit none
 
@@ -157,4 +157,4 @@ contains
 
   end function is_near_integer
 
-end module cosmotransitions__special
+end module fortransitions__special

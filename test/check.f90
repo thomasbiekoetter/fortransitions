@@ -3,8 +3,8 @@ module check__potentials
 !! docstring and the two-field potential from examples/fullTunneling.py of
 !! the Python package.
 
-  use cosmotransitions, only : wp
-  use cosmotransitions, only : potential_nd
+  use fortransitions, only : wp
+  use fortransitions, only : potential_nd
 
   implicit none
 
@@ -95,13 +95,13 @@ program check
 !! different spline knots (bspline-fortran vs. FITPACK) and a slightly
 !! different Simpson rule, so exact agreement is not expected.
 
-  use cosmotransitions, only : wp
-  use cosmotransitions, only : status_ok
-  use cosmotransitions, only : pot1d_func
-  use cosmotransitions, only : single_field_instanton
-  use cosmotransitions, only : profile1d
-  use cosmotransitions, only : full_tunneling
-  use cosmotransitions, only : full_tunneling_result
+  use fortransitions, only : wp
+  use fortransitions, only : status_ok
+  use fortransitions, only : pot1d_func
+  use fortransitions, only : single_field_instanton
+  use fortransitions, only : profile1d
+  use fortransitions, only : full_tunneling
+  use fortransitions, only : full_tunneling_result
 
   use check__potentials, only : v1_thin
   use check__potentials, only : dv1_thin
