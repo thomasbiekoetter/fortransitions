@@ -1,16 +1,16 @@
-module cosmotransitions__deformation
+module fortransitions__deformation
 !! Port of pathDeformation.Deformation_Spline: deform a path in the
 !! presence of a potential such that the normal forces along the path
 !! vanish. The path is fit to a set of spline basis functions and the
 !! deformation acts on the spline coefficients.
 
-  use cosmotransitions__config, only : wp
-  use cosmotransitions__config, only : status_ok
-  use cosmotransitions__config, only : err_deformation
-  use cosmotransitions__helpers, only : nbspld2
-  use cosmotransitions__helpers, only : linspace
-  use cosmotransitions__helpers, only : lstsq
-  use cosmotransitions__potentials, only : potential_nd
+  use fortransitions__config, only : wp
+  use fortransitions__config, only : status_ok
+  use fortransitions__config, only : err_deformation
+  use fortransitions__helpers, only : nbspld2
+  use fortransitions__helpers, only : linspace
+  use fortransitions__helpers, only : lstsq
+  use fortransitions__potentials, only : potential_nd
 
   implicit none
 
@@ -483,4 +483,4 @@ contains
 
   end subroutine dfs_deform_path
 
-end module cosmotransitions__deformation
+end module fortransitions__deformation

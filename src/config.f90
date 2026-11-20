@@ -1,5 +1,5 @@
-module cosmotransitions__config
-!! Working precision and status codes shared by all cosmotransitions modules.
+module fortransitions__config
+!! Working precision and status codes shared by all fortransitions modules.
 
   use, intrinsic :: iso_fortran_env, only : real64
 
@@ -27,4 +27,4 @@ module cosmotransitions__config
   integer, parameter, public :: err_numerical = 5
     !! Generic numerical failure (root finding, linear solve, spline setup...)
 
-end module cosmotransitions__config
+end module fortransitions__config

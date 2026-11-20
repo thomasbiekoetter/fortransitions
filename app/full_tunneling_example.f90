@@ -2,8 +2,8 @@ module full_tunneling_example__potential
 !! The two-dimensional example potential from examples/fullTunneling.py of
 !! the Python package.
 
-  use cosmotransitions, only : wp
-  use cosmotransitions, only : potential_nd
+  use fortransitions, only : wp
+  use fortransitions, only : potential_nd
 
   implicit none
 
@@ -57,10 +57,10 @@ program full_tunneling_example
 !! a thin-walled and a thick-walled two-field instanton and writes the
 !! resulting paths and one-dimensional profiles to CSV files.
 
-  use cosmotransitions, only : wp
-  use cosmotransitions, only : status_ok
-  use cosmotransitions, only : full_tunneling
-  use cosmotransitions, only : full_tunneling_result
+  use fortransitions, only : wp
+  use fortransitions, only : status_ok
+  use fortransitions, only : full_tunneling
+  use fortransitions, only : full_tunneling_result
 
   use full_tunneling_example__potential, only : example_potential
 

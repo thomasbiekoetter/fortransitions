@@ -1,29 +1,29 @@
-module cosmotransitions__tunneling1d
+module fortransitions__tunneling1d
 !! Port of cosmoTransitions/tunneling1D.py (class SingleFieldInstanton):
 !! everything needed to calculate instantons in one field dimension using
 !! the overshoot/undershoot method.
 
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
 
-  use cosmotransitions__config, only : wp
-  use cosmotransitions__config, only : pi
-  use cosmotransitions__config, only : status_ok
-  use cosmotransitions__config, only : err_integration
-  use cosmotransitions__config, only : err_no_barrier
-  use cosmotransitions__config, only : err_stable
-  use cosmotransitions__config, only : err_numerical
+  use fortransitions__config, only : wp
+  use fortransitions__config, only : pi
+  use fortransitions__config, only : status_ok
+  use fortransitions__config, only : err_integration
+  use fortransitions__config, only : err_no_barrier
+  use fortransitions__config, only : err_stable
+  use fortransitions__config, only : err_numerical
   use odeint__rkck, only : rkqs_vec
   use odeint__rkck, only : rkqs_ok
-  use cosmotransitions__helpers, only : cubic_interp
-  use cosmotransitions__helpers, only : linspace
-  use cosmotransitions__helpers, only : simpson
-  use cosmotransitions__helpers, only : interp_linear
-  use cosmotransitions__helpers, only : monotonic_indices
-  use cosmotransitions__optimize, only : brentq
-  use cosmotransitions__optimize, only : minimize_bounded
-  use cosmotransitions__special, only : besseli_nu
-  use cosmotransitions__special, only : besselj_nu
-  use cosmotransitions__potentials, only : potential_1d
+  use fortransitions__helpers, only : cubic_interp
+  use fortransitions__helpers, only : linspace
+  use fortransitions__helpers, only : simpson
+  use fortransitions__helpers, only : interp_linear
+  use fortransitions__helpers, only : monotonic_indices
+  use fortransitions__optimize, only : brentq
+  use fortransitions__optimize, only : minimize_bounded
+  use fortransitions__special, only : besseli_nu
+  use fortransitions__special, only : besselj_nu
+  use fortransitions__potentials, only : potential_1d
 
   implicit none
 
@@ -985,4 +985,4 @@ contains
 
   end function sgn
 
-end module cosmotransitions__tunneling1d
+end module fortransitions__tunneling1d

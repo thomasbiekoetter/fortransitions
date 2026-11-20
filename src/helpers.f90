@@ -1,4 +1,4 @@
-module cosmotransitions__helpers
+module fortransitions__helpers
 !! Port of the parts of cosmoTransitions/helper_functions.py that are needed
 !! by pathDeformation.fullTunneling, plus a few small numerical utilities
 !! (trapezoid/Simpson integration, linear interpolation, least squares).
@@ -6,9 +6,9 @@ module cosmotransitions__helpers
 !! is not ported here; the odeint package (rkqs_vec in odeint__rkck)
 !! provides it.
 
-  use cosmotransitions__config, only : wp
-  use cosmotransitions__config, only : status_ok
-  use cosmotransitions__config, only : err_numerical
+  use fortransitions__config, only : wp
+  use fortransitions__config, only : status_ok
+  use fortransitions__config, only : err_numerical
   use gradmin__linearsolve, only : gauss_jordan
 
   implicit none
@@ -353,4 +353,4 @@ contains
 
   end subroutine lstsq
 
-end module cosmotransitions__helpers
+end module fortransitions__helpers

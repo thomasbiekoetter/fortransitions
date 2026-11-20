@@ -1,4 +1,4 @@
-module cosmotransitions__pathdeformation
+module fortransitions__pathdeformation
 !! Port of pathDeformation.fullTunneling: find the instanton solution in
 !! multiple field dimensions by looping over
 !!   1. fitting a spline to the path,
@@ -6,14 +6,14 @@ module cosmotransitions__pathdeformation
 !!   3. deforming the path to satisfy the transverse equations of motion,
 !!   4. checking for convergence.
 
-  use cosmotransitions__config, only : wp
-  use cosmotransitions__config, only : status_ok
-  use cosmotransitions__config, only : err_deformation
-  use cosmotransitions__potentials, only : potential_nd
-  use cosmotransitions__tunneling1d, only : single_field_instanton
-  use cosmotransitions__tunneling1d, only : profile1d
-  use cosmotransitions__splinepath, only : spline_path
-  use cosmotransitions__deformation, only : deformation_spline
+  use fortransitions__config, only : wp
+  use fortransitions__config, only : status_ok
+  use fortransitions__config, only : err_deformation
+  use fortransitions__potentials, only : potential_nd
+  use fortransitions__tunneling1d, only : single_field_instanton
+  use fortransitions__tunneling1d, only : profile1d
+  use fortransitions__splinepath, only : spline_path
+  use fortransitions__deformation, only : deformation_spline
 
   implicit none
 
@@ -218,4 +218,4 @@ contains
 
   end subroutine full_tunneling
 
-end module cosmotransitions__pathdeformation
+end module fortransitions__pathdeformation

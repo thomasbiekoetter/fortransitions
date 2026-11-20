@@ -1,4 +1,4 @@
-# cosmotransitions
+# fortransitions
 
 A Fortran port of the Python package
 [CosmoTransitions](https://github.com/clwainwright/CosmoTransitions)
@@ -59,7 +59,7 @@ the paper for which this Fortran port was developed
 Errors that the Python package raises as exceptions
 (`PotentialError`, `IntegrationError`, `DeformationError`) are reported
 through integer `status` arguments; the codes are defined in
-`cosmotransitions__config` and re-exported by the top-level module.
+`fortransitions__config` and re-exported by the top-level module.
 
 ## Usage
 
@@ -67,7 +67,7 @@ Potentials are supplied as derived types. For `full_tunneling`, extend
 `potential_nd` and implement `v(x)` and `grad(x)`:
 
 ```fortran
-use cosmotransitions
+use fortransitions
 
 type, extends(potential_nd) :: my_potential
 contains
