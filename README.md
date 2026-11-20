@@ -10,6 +10,27 @@ This port was written entirely by
 (Anthropic), including the source code, the test programs, the reference
 scripts in `reference/`, and this README.
 
+## Citation
+
+If you use this code, please cite the original CosmoTransitions paper
+(C.L. Wainwright, Comput. Phys. Commun. 183 (2012) 2006,
+[arXiv:1109.4189](http://arxiv.org/abs/1109.4189)) and, in addition,
+the paper for which this Fortran port was developed
+([INSPIRE](https://inspirehep.net/literature/3231213)):
+
+```bibtex
+@article{Biekotter:2026oiv,
+    author = {Biek{\"o}tter, Thomas and Dashko, Andrii and Radchenko, Kateryna},
+    title = "{Simulation-based inference for gravitational-wave cosmology: parameter reconstruction of a first-order electroweak phase transition}",
+    eprint = "2611.25036",
+    archivePrefix = "arXiv",
+    primaryClass = "astro-ph.CO",
+    reportNumber = "IFT-UAM/CSIC-26-169",
+    month = "11",
+    year = "2026"
+}
+```
+
 ## Ported so far
 
 - `pathDeformation.fullTunneling` → `full_tunneling`: multi-field
