@@ -1,4 +1,4 @@
-module cosmotransitions__splinepath
+module fortransitions__splinepath
 !! Port of pathDeformation.SplinePath: fit a spline to a path in
 !! multi-dimensional field space and evaluate the potential (and its
 !! derivatives) as a function of the distance along the path.
@@ -12,16 +12,16 @@ module cosmotransitions__splinepath
   use bspline_module, only : bspline_1d
   use, intrinsic :: iso_fortran_env, only : ip => int32
 
-  use cosmotransitions__config, only : wp
-  use cosmotransitions__config, only : status_ok
-  use cosmotransitions__config, only : err_numerical
-  use cosmotransitions__helpers, only : deriv14_const_dx
-  use cosmotransitions__helpers, only : cumtrapz
-  use cosmotransitions__helpers, only : linspace
-  use cosmotransitions__helpers, only : interp_linear
-  use cosmotransitions__optimize, only : minimize_unbounded
-  use cosmotransitions__potentials, only : potential_1d
-  use cosmotransitions__potentials, only : potential_nd
+  use fortransitions__config, only : wp
+  use fortransitions__config, only : status_ok
+  use fortransitions__config, only : err_numerical
+  use fortransitions__helpers, only : deriv14_const_dx
+  use fortransitions__helpers, only : cumtrapz
+  use fortransitions__helpers, only : linspace
+  use fortransitions__helpers, only : interp_linear
+  use fortransitions__optimize, only : minimize_unbounded
+  use fortransitions__potentials, only : potential_1d
+  use fortransitions__potentials, only : potential_nd
 
   implicit none
 
@@ -527,4 +527,4 @@ contains
 
   end function spline_path_pts_many
 
-end module cosmotransitions__splinepath
+end module fortransitions__splinepath

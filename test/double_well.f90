@@ -8,8 +8,8 @@ module double_well__potential
 !! coefficient c controls the depth of the true vacuum and is set at run
 !! time, so the same potential can be scanned over a range of c values.
 
-  use cosmotransitions, only : wp
-  use cosmotransitions, only : potential_nd
+  use fortransitions, only : wp
+  use fortransitions, only : potential_nd
 
   implicit none
 
@@ -85,10 +85,10 @@ program double_well
 
   use gradmin__newton, only : minimize
 
-  use cosmotransitions, only : wp
-  use cosmotransitions, only : status_ok
-  use cosmotransitions, only : full_tunneling
-  use cosmotransitions, only : full_tunneling_result
+  use fortransitions, only : wp
+  use fortransitions, only : status_ok
+  use fortransitions, only : full_tunneling
+  use fortransitions, only : full_tunneling_result
 
   use double_well__potential, only : bounce_potential
   use double_well__potential, only : v_plain

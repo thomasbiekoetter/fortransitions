@@ -1,4 +1,4 @@
-# cosmotransitions
+# fortransitions
 
 A Fortran port of the Python package
 [CosmoTransitions](https://github.com/clwainwright/CosmoTransitions)
@@ -9,6 +9,27 @@ This port was written entirely by
 [Claude Fable 5](https://www.anthropic.com/news/claude-fable-5-mythos-5)
 (Anthropic), including the source code, the test programs, the reference
 scripts in `reference/`, and this README.
+
+## Citation
+
+If you use this code, please cite the original CosmoTransitions paper
+(C.L. Wainwright, Comput. Phys. Commun. 183 (2012) 2006,
+[arXiv:1109.4189](http://arxiv.org/abs/1109.4189)) and, in addition,
+the paper for which this Fortran port was developed
+([INSPIRE](https://inspirehep.net/literature/3231213)):
+
+```bibtex
+@article{Biekotter:2026oiv,
+    author = {Biek{\"o}tter, Thomas and Dashko, Andrii and Radchenko, Kateryna},
+    title = "{Simulation-based inference for gravitational-wave cosmology: parameter reconstruction of a first-order electroweak phase transition}",
+    eprint = "2611.25036",
+    archivePrefix = "arXiv",
+    primaryClass = "astro-ph.CO",
+    reportNumber = "IFT-UAM/CSIC-26-169",
+    month = "11",
+    year = "2026"
+}
+```
 
 ## Ported so far
 
@@ -48,7 +69,7 @@ scripts in `reference/`, and this README.
 Errors that the Python package raises as exceptions
 (`PotentialError`, `IntegrationError`, `DeformationError`) are reported
 through integer `status` arguments; the codes are defined in
-`cosmotransitions__config` and re-exported by the top-level module.
+`fortransitions__config` and re-exported by the top-level module.
 
 ## Usage
 
@@ -56,7 +77,7 @@ Potentials are supplied as derived types. For `full_tunneling`, extend
 `potential_nd` and implement `v(x)` and `grad(x)`:
 
 ```fortran
-use cosmotransitions
+use fortransitions
 
 type, extends(potential_nd) :: my_potential
 contains

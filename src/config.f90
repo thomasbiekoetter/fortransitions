@@ -1,5 +1,5 @@
-module cosmotransitions__config
-!! Working precision and status codes shared by all cosmotransitions modules.
+module fortransitions__config
+!! Working precision and status codes shared by all fortransitions modules.
 
   use, intrinsic :: iso_fortran_env, only : real64
 
@@ -31,4 +31,4 @@ module cosmotransitions__config
     !! denominator in the de Boor recursion (iflag 407) that occurs when a
     !! spline is extrapolated extremely far outside its knot interval.
 
-end module cosmotransitions__config
+end module fortransitions__config

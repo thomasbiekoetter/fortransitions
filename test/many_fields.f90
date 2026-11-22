@@ -12,8 +12,8 @@ module many_fields__potential
 !! tunneling path bends in every transverse direction and the path
 !! deformation is genuinely exercised.
 
-  use cosmotransitions, only : wp
-  use cosmotransitions, only : potential_nd
+  use fortransitions, only : wp
+  use fortransitions, only : potential_nd
 
   implicit none
 
@@ -102,10 +102,10 @@ program many_fields
 !! observed growth per dimension of a few percent is far above the
 !! deformation noise of order 1e-3).
 
-  use cosmotransitions, only : wp
-  use cosmotransitions, only : status_ok
-  use cosmotransitions, only : full_tunneling
-  use cosmotransitions, only : full_tunneling_result
+  use fortransitions, only : wp
+  use fortransitions, only : status_ok
+  use fortransitions, only : full_tunneling
+  use fortransitions, only : full_tunneling_result
 
   use many_fields__potential, only : many_fields_potential
 

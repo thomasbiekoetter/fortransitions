@@ -1,11 +1,11 @@
-module cosmotransitions__potentials
+module fortransitions__potentials
 !! Abstract interfaces for the potentials used throughout the package.
 !!
 !! The Python package passes plain callables (V, dV, d2V) around. In
 !! Fortran, an object with type-bound procedures is used instead so that
 !! stateful potentials (like the spline path potential) work naturally.
 
-  use cosmotransitions__config, only : wp
+  use fortransitions__config, only : wp
 
   implicit none
 
@@ -162,4 +162,4 @@ contains
 
   end function pot1d_func_d2v
 
-end module cosmotransitions__potentials
+end module fortransitions__potentials
