@@ -112,6 +112,12 @@ External fpm dependencies: `odeint` (`rkqs_vec` Cash-Karp RK stepper),
   `make wrapper` in an environment with numpy. Rebuild after every
   change in `src/`, because the package loads
   `python/pyfortransitions/lib/libfortransitions.so`.
+- The pixi environments and a manual install in another Python (e.g. a
+  pyenv env) share `python/pyfortransitions/lib/`: the last `make lib`
+  wins. The Makefile therefore uses one fpm build directory per toolchain
+  (`build/<FC>-env-<pixi env>`, `build/<FC>-system`). fpm does not relink
+  when only the link flags (rpath) change. Rebuild after switching
+  environments.
 - The C interface takes no optional arguments. Python passes every
   value explicitly, with defaults identical to the Fortran ones, and
   "find automatically" options get a `has_*` flag. Any change to the

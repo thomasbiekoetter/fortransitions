@@ -30,6 +30,16 @@ ifdef CONDA_PREFIX
 RPATH += -Wl,-rpath,$(CONDA_PREFIX)/lib
 endif
 
+# One fpm build directory per toolchain (pixi environment or system
+# compiler). fpm does not relink when only the link flags change, so with
+# a shared build directory, switching between e.g. pixi and a system
+# Python would install a library linked for the other environment.
+ifdef CONDA_PREFIX
+BUILD_DIR := build/$(notdir $(FC))-env-$(notdir $(CONDA_PREFIX))
+else
+BUILD_DIR := build/$(notdir $(FC))-system
+endif
+
 .PHONY: wrapper lib clean
 
 wrapper: lib
@@ -38,8 +48,9 @@ wrapper: lib
 # Always pass --profile: without it, fpm applies none of the flags in
 # fpm.toml (for ifx, this includes the required -fp-model=precise).
 lib:
+	rm -rf $(PKG)/lib $(PKG)/include
 	fpm install --profile release --compiler '$(FC)' --flag '-fPIC' \
-		--link-flag '$(RPATH)' --prefix ./$(PKG)/
+		--link-flag '$(RPATH)' --build-dir '$(BUILD_DIR)' --prefix ./$(PKG)/
 
 clean:
 	-$(PC) -m pip uninstall -y $(PKG)

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Python interface to fortransitions, a Fortran port of CosmoTransitions."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
   { name = "Thomas Biekötter", email = "thomas.biekoetter@desy.de" }
 ]
@@ -18,8 +18,10 @@ dependencies = ["numpy"]
 compare = ["cosmoTransitions", "scipy"]
 
 [tool.setuptools]
-packages = ["pyfortransitions"]
+# lib/ holds the Fortran shared libraries (built by `make lib`); it is
+# declared as a package so that setuptools ships its .so files as data.
+packages = ["pyfortransitions", "pyfortransitions.lib"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-"pyfortransitions" = ["lib/*.so"]
+"pyfortransitions.lib" = ["*.so"]
