@@ -40,10 +40,15 @@ fpm test  --profile debug                # bounds checks, FPE traps (gfortran)
 | `src/helpers.f90`       | `fortransitions__helpers`         | `helper_functions` (Nbspld2, deriv14, cumtrapz, simpson, lstsq, ...) |
 | `src/optimize.f90`      | `fortransitions__optimize`        | scipy `brentq`, `fminbound`, `fmin` replacements     |
 | `src/special.f90`       | `fortransitions__special`         | scipy fractional-order Bessel `iv`, `jv`             |
+| `src/c_potentials.f90`  | `fortransitions__c_potentials`    | potentials given by C function pointers (Python callbacks) |
+| `src/c_tunneling1d.f90` | `fortransitions__c_tunneling1d`   | `bind(C)` interface to `single_field_instanton` (opaque handles) |
+| `src/c_pathdeformation.f90`| `fortransitions__c_pathdeformation` | `bind(C)` interface to `full_tunneling` (opaque handles) |
 
 - `test/`: `check.f90`, `double_well.f90` and `many_fields.f90` each
   assert against reference values from the Python package. They count
   failures and end with `error stop 1` if any test fails.
+  `c_interface.f90` checks that the `bind(C)` layer gives results
+  identical to the native API.
 - `reference/`: Python scripts (`ref_*.py`) that generate those
   reference values with the original cosmoTransitions. See
   `reference/README.md` for the package versions and the reasoning
@@ -51,6 +56,19 @@ fpm test  --profile debug                # bounds checks, FPE traps (gfortran)
   numpy and scipy.
 - `app/full_tunneling_example.f90`: the two-field example from
   `examples/fullTunneling.py`.
+
+- `python/`: the Python package `pyfortransitions` (see
+  `python/README.md`). `python/fpm.toml` builds `../src` as a shared
+  library. The `Makefile` holds all of the build logic (`make lib`,
+  `make wrapper`, `make clean`), and the `pixi.toml` tasks (`install`,
+  `test`, `clean`) only call it, so the pixi and manual builds stay in
+  sync. The rpath (`$ORIGIN`, plus the env's `lib/` under pixi) is set at
+  link time, so no patchelf step is needed. The ctypes wrappers are in
+  `python/pyfortransitions/` (`_lib.py` declares the C signatures), and
+  the tests are in `python/test/run_tests.py`.
+  `python/test/compare_cosmoTransitions.py` compares the results directly
+  against cosmoTransitions; run it in the pixi environment `compare`
+  (`pixi run -e compare compare`). Only Linux is supported.
 
 External fpm dependencies: `odeint` (`rkqs_vec` Cash-Karp RK stepper),
 `bspline-fortran` (`bspline_1d`, used for all splines), `gradmin`
@@ -81,6 +99,27 @@ External fpm dependencies: `odeint` (`rkqs_vec` Cash-Karp RK stepper),
 - Users supply potentials by extending `potential_nd` (deferred `v`,
   `grad`) or `potential_1d` (deferred `v`; `dv`/`d2v` default to finite
   differences). Their methods take `class(...), intent(inout) :: self`.
+
+## Python interface
+
+- Build and test with `cd python && pixi run test` (or `--quick` via
+  `pixi run python test/run_tests.py --quick`). The manual route is
+  `make wrapper` in an environment with numpy. Rebuild after every
+  change in `src/`, because the package loads
+  `python/pyfortransitions/lib/libfortransitions.so`.
+- The C interface takes no optional arguments. Python passes every
+  value explicitly, with defaults identical to the Fortran ones, and
+  "find automatically" options get a `has_*` flag. Any change to the
+  arguments of `full_tunneling`, `single_field_instanton%init` or
+  `%find_profile` must be carried through to `src/c_*.f90`,
+  `python/pyfortransitions/_lib.py` and the Python wrappers.
+- Python exceptions in callbacks are stored, and the callbacks return
+  NaN from then on. The Fortran code must therefore end promptly on NaN
+  input: write loop guards NaN-safe (`.not. (x <= limit)`), and return
+  `err_numerical` on non-finite values instead of looping.
+- `error stop` in library code would also kill the Python process.
+  The Python wrappers validate the arguments that would reach the
+  existing `error stop`s (e.g. `maxiter`, `V_spline_samples`, `nb`/`kb`).
 
 ## Porting guidelines
 

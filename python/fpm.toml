@@ -1,0 +1,45 @@
+# Builds fortransitions (sources in ../src) as a shared library for the
+# Python package pyfortransitions. Use it through the Makefile
+# (`make wrapper`) or the pixi tasks (`pixi run install`), not directly.
+name = "fortransitions"
+version = "0.1.0"
+license = "MIT"
+author = "Thomas Biekötter"
+maintainer = "thomas.biekoetter@desy.de"
+copyright = "Copyright 2026, Thomas"
+
+[build]
+auto-executables = false
+auto-tests = false
+auto-examples = false
+module-naming = false
+
+[install]
+library = true
+test = false
+
+[library]
+source-dir = "../src"
+type = "shared"
+
+[fortran]
+implicit-typing = false
+implicit-external = false
+source-form = "free"
+
+[dependencies]
+gradmin = { git = "https://gitlab.com/thomas.biekoetter/gradmin.git", profile="release" }
+odeint = { git = "https://github.com/thomasbiekoetter/odeint.git", profile="release" }
+bspline-fortran = { git = "https://github.com/thomasbiekoetter/bspline-fortran.git" }
+
+[features]
+debug.flags = "-fPIC -O0 -g "
+debug.gfortran.flags = "-fbounds-check -fbacktrace -Wall -Wuninitialized -fmax-errors=1 -fcheck=all -ffpe-trap=invalid,zero,overflow -ffpe-summary=invalid,zero,overflow"
+debug.ifx.flags = "-check bounds -check pointer -traceback -fp-model=precise"
+release.flags = "-O3"
+release.gfortran.flags = "-march=native -fmax-errors=1 -ffixed-line-length-none -fno-range-check -ffpe-summary=invalid,zero,overflow"
+release.ifx.flags = "-xHost -fp-model=precise"
+
+[profiles]
+debug = ["debug"]
+release = ["release"]

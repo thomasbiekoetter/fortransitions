@@ -14,6 +14,8 @@ module fortransitions__potentials
   public :: potential_1d
   public :: potential_nd
   public :: pot1d_func
+  public :: potential_1d_dv
+  public :: potential_1d_d2v
 
   type, abstract :: potential_1d
     !! A one-dimensional potential V(phi). The first and second derivatives

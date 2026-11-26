@@ -91,8 +91,10 @@ contains
     !! Port of SingleFieldInstanton.__init__.
     !!
     !! Fails with `err_stable` when the presumably stable minimum has a
-    !! higher energy than the metastable one, and with `err_no_barrier`
-    !! when there is no barrier between the minima.
+    !! higher energy than the metastable one, with `err_no_barrier`
+    !! when there is no barrier between the minima, and with
+    !! `err_numerical` when V at the minima, phi_bar or rscale is not
+    !! finite.
 
     class(single_field_instanton), intent(inout) :: self
     real(wp), intent(in) :: phi_absmin
@@ -122,6 +124,13 @@ contains
     phi_eps_rel_ = 1.0e-3_wp
     if (present(phi_eps_rel)) phi_eps_rel_ = phi_eps_rel
 
+    if (.not. (ieee_is_finite(pot%v(phi_metamin))  &
+        .and. ieee_is_finite(pot%v(phi_absmin)))) then
+      ! Not in Python: a non-finite potential would otherwise propagate
+      ! NaNs into the search loops below.
+      status = err_numerical
+      return
+    end if
     if (pot%v(phi_metamin) <= pot%v(phi_absmin)) then
       ! "V(phi_metaMin) <= V(phi_absMin); tunneling cannot occur."
       status = err_stable
@@ -143,6 +152,12 @@ contains
     else
       self%rscale = self%find_rscale(status)
       if (status /= status_ok) return
+    end if
+    if (.not. (ieee_is_finite(self%phi_bar) .and. ieee_is_finite(self%rscale)))  &
+        then
+      ! Not in Python (see above).
+      status = err_numerical
+      return
     end if
 
   end subroutine sfi_init
@@ -369,11 +384,12 @@ contains
     do
       rlast = r
       r = r*10.0_wp
-      if (r > 1.0e150_wp) then
+      if (.not. (r <= 1.0e150_wp)) then
         ! In Python r runs off to infinity here; treat it as a failure to
         ! find initial conditions. The threshold also keeps every
         ! expression in exact_solution (and the integration started from
-        ! r0) safely below the overflow limit.
+        ! r0) safely below the overflow limit. Written so that a NaN r
+        ! (e.g. from a NaN rscale) also ends the loop.
         status = err_numerical
         return
       end if

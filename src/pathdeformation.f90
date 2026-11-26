@@ -6,10 +6,13 @@ module fortransitions__pathdeformation
 !!   3. deforming the path to satisfy the transverse equations of motion,
 !!   4. checking for convergence.
 
+  use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
+
   use fortransitions__config, only : wp
   use fortransitions__config, only : status_ok
   use fortransitions__config, only : err_deformation
   use fortransitions__config, only : err_spline
+  use fortransitions__config, only : err_numerical
   use fortransitions__potentials, only : potential_nd
   use fortransitions__tunneling1d, only : single_field_instanton
   use fortransitions__tunneling1d, only : profile1d
@@ -210,6 +213,13 @@ contains
         return
       end if
       pts = deform_obj%phi
+      if (.not. all(ieee_is_finite(pts))) then
+        ! Not in Python: a non-finite gradient of the potential gives a
+        ! non-finite path, on which the next iteration would not terminate
+        ! in reasonable time.
+        status = err_numerical
+        return
+      end if
       ! 4. Check convergence. If the deformation converged after one step,
       ! then assume that the path is a good solution.
       if (converged .and. deform_obj%num_steps < 2) then

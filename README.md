@@ -116,6 +116,24 @@ For purely one-dimensional problems, use `single_field_instanton` with a
 `potential_1d` (or the ready-made `pot1d_func` wrapper for plain
 functions; derivatives default to finite differences).
 
+## Python interface
+
+The directory `python/` contains the Python package `pyfortransitions`.
+It exposes `fullTunneling` and `SingleFieldInstanton` with the same
+arguments as cosmoTransitions, with the potential written in Python:
+
+```python
+from pyfortransitions import fullTunneling
+res = fullTunneling([[1.0, 1.0], [0.0, 0.0]], V, dV)
+print(res.action)
+```
+
+Build and install it with [pixi](https://pixi.sh) (`cd python && pixi run
+install`), which provides gfortran, fpm and Python. Alternatively, run
+`make wrapper` with your own gfortran or ifx, fpm and Python environment.
+See `python/README.md` for details. The package calls the library
+through `bind(C)` wrappers in `src/c_*.f90`.
+
 ## Building and testing
 
 ```sh

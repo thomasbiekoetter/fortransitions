@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyfortransitions"
+version = "0.1.0"
+description = "Python interface to fortransitions, a Fortran port of CosmoTransitions."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+  { name = "Thomas Biekötter", email = "thomas.biekoetter@desy.de" }
+]
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+compare = ["cosmoTransitions", "scipy"]
+
+[tool.setuptools]
+packages = ["pyfortransitions"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"pyfortransitions" = ["lib/*.so"]
