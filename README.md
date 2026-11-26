@@ -123,12 +123,12 @@ functions; derivatives default to finite differences).
 
 ## Python interface
 
-The directory `python/` contains the Python package `pyfortransitions`.
+The directory `python/` contains the Python package `fortransitions`.
 It exposes `fullTunneling` and `SingleFieldInstanton` with the same
 arguments as cosmoTransitions, with the potential written in Python:
 
 ```python
-from pyfortransitions import fullTunneling
+from fortransitions import fullTunneling
 res = fullTunneling([[1.0, 1.0], [0.0, 0.0]], V, dV)
 print(res.action)
 ```

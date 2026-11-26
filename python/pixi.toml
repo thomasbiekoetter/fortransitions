@@ -1,4 +1,4 @@
-# pixi workspace for building, installing and testing pyfortransitions.
+# pixi workspace for building, installing and testing fortransitions.
 #
 #   pixi run install   build the Fortran shared library and install the
 #                      package (editable) into the pixi environment
@@ -9,7 +9,7 @@
 # pixi build and the manual build (`make wrapper`) cannot diverge.
 
 [workspace]
-name = "pyfortransitions"
+name = "fortransitions"
 channels = ["conda-forge"]
 platforms = ["linux-64"]
 

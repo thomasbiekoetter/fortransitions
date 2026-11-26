@@ -1,6 +1,6 @@
 module fortransitions__c_tunneling1d
 !! bind(C) interface to single_field_instanton for the Python package
-!! pyfortransitions.
+!! fortransitions.
 !!
 !! An instanton is an opaque handle (C pointer) to a heap-allocated
 !! container holding the potential and the single_field_instanton object.

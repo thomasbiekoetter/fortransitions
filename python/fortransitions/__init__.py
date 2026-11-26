@@ -1,4 +1,4 @@
-"""pyfortransitions: Python interface to fortransitions, a Fortran port of
+"""fortransitions: Python interface to fortransitions, a Fortran port of
 CosmoTransitions (C.L. Wainwright, Comput. Phys. Commun. 183 (2012) 2006,
 arXiv:1109.4189).
 

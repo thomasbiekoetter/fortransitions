@@ -1,5 +1,5 @@
 # Builds fortransitions (sources in ../src) as a shared library for the
-# Python package pyfortransitions. Use it through the Makefile
+# Python package fortransitions. Use it through the Makefile
 # (`make wrapper`) or the pixi tasks (`pixi run install`), not directly.
 name = "fortransitions"
 version = "0.1.0"

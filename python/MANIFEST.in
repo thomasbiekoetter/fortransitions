@@ -1,1 +1,1 @@
-recursive-include pyfortransitions/lib *.so
+recursive-include fortransitions/lib *.so

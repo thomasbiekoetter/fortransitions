@@ -1,6 +1,6 @@
 module fortransitions__c_pathdeformation
 !! bind(C) interface to full_tunneling for the Python package
-!! pyfortransitions.
+!! fortransitions.
 !!
 !! The result is returned as an opaque handle (a C pointer to a
 !! heap-allocated full_tunneling_result), because the size of the profile

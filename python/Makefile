@@ -1,4 +1,4 @@
-# Build and install the Python package pyfortransitions.
+# Build and install the Python package fortransitions.
 #
 #   make wrapper            build the shared library and pip-install the
 #                           package (editable) into the active Python
@@ -19,7 +19,7 @@ PC := python
 endif
 PIP_FLAGS ?=
 
-PKG := pyfortransitions
+PKG := fortransitions
 
 # The libraries find each other through the runpath $ORIGIN (their own
 # directory), so no patchelf step is needed. Inside a conda/pixi
@@ -42,8 +42,13 @@ endif
 
 .PHONY: wrapper lib clean
 
+# Strict editable mode: the package is reached through a plain sys.path
+# entry (a link tree in build/), not through an import hook. With the
+# default hook, `import fortransitions` in the directory that contains the
+# repository would find the repository folder (also named fortransitions)
+# as an empty namespace package instead.
 wrapper: lib
-	$(PC) -m pip install -e . $(PIP_FLAGS)
+	$(PC) -m pip install -e . --config-settings editable_mode=strict $(PIP_FLAGS)
 
 # Always pass --profile: without it, fpm applies none of the flags in
 # fpm.toml (for ifx, this includes the required -fp-model=precise).

@@ -1,13 +1,14 @@
-# pyfortransitions
+# fortransitions for Python
 
-Python interface to **fortransitions**, the Fortran port of
+The Python package `fortransitions` is the Python interface to the
+Fortran package of the same name, the Fortran port of
 [CosmoTransitions](https://github.com/clwainwright/CosmoTransitions). It
 provides `fullTunneling` and `SingleFieldInstanton` with the same
 arguments and defaults as cosmoTransitions. The potential is written in
 Python; the instanton calculation runs in Fortran.
 
 The Fortran code is compiled into a shared library
-(`pyfortransitions/lib/libfortransitions.so`) and called with `ctypes`
+(`fortransitions/lib/libfortransitions.so`) and called with `ctypes`
 through `bind(C)` wrappers (`../src/c_*.f90`). Only Linux is supported
 for now.
 
@@ -22,7 +23,7 @@ system. From this directory:
 ```sh
 pixi run install   # build the shared library, install the package
 pixi run test      # build, install and run the tests
-pixi shell         # a shell in the environment, with pyfortransitions
+pixi shell         # a shell in the environment, with fortransitions
 ```
 
 ### Manual build
@@ -50,7 +51,7 @@ products. Use `make wrapper PC=python3` if your interpreter is not called
 
 ```python
 import numpy as np
-from pyfortransitions import fullTunneling
+from fortransitions import fullTunneling
 
 def V(X):
     x, y = X[..., 0], X[..., 1]
@@ -95,7 +96,7 @@ metastable minimum.
 ### One-field instantons
 
 ```python
-from pyfortransitions import SingleFieldInstanton
+from fortransitions import SingleFieldInstanton
 
 V = lambda phi: 0.25*phi**4 - 0.49*phi**3 + 0.235*phi**2
 dV = lambda phi: phi*(phi - 0.47)*(phi - 1)
@@ -145,7 +146,7 @@ memory use. `python test/run_tests.py --quick` skips the many-field scan
 above 10 fields.
 
 `test/compare_cosmoTransitions.py` runs the same problems with
-cosmoTransitions and pyfortransitions, using the same potential functions
+cosmoTransitions and fortransitions, using the same potential functions
 and keyword arguments. It prints the results, their relative differences
 and the run times of both packages. Run it in the pixi environment
 `compare`, which adds cosmoTransitions and scipy and pins Python, numpy
@@ -164,18 +165,18 @@ single call per step, as cosmoTransitions does, so numpy evaluates all
 points in one vectorized operation.
 
 For this to work, `dV` must accept an array of shape `(npts, ndim)`, as
-in the example above. Otherwise pyfortransitions falls back to calling
+in the example above. Otherwise fortransitions falls back to calling
 `dV` once per point, which costs about 50 µs per point. For the
 two-field example of cosmoTransitions (`examples/fullTunneling.py`):
 
-| `dV` | pyfortransitions | cosmoTransitions |
+| `dV` | fortransitions | cosmoTransitions |
 | ---- | ---------------- | ---------------- |
 | vectorized (`X[..., i]`, `np.empty_like`) | 0.05 s | 0.66 s |
 | single points only, plain floats | 0.30 s | (fails) |
 | vectorized, but `vectorized=False` | 2.6 s | |
 
 For all test problems of `test/compare_cosmoTransitions.py`, with
-vectorized potentials, pyfortransitions is 10–40x faster for one-field
+vectorized potentials, fortransitions is 10–40x faster for one-field
 problems, about 10x for the two-field example, about 60x for the double
 well and 40–70x for 2–10 fields. The narrow barrier with
 `V_spline_samples=None` is 5x faster: there, the 1d tunneling has to call

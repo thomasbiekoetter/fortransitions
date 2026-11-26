@@ -65,7 +65,7 @@ def _take(params, name, allowed):
     unknown = set(params) - set(allowed)
     if unknown:
         raise NotImplementedError(
-            "fullTunneling: {} {} not supported by pyfortransitions "
+            "fullTunneling: {} {} not supported by fortransitions "
             "(supported: {})".format(name, sorted(unknown),
                                      sorted(allowed) or "none"))
     return params

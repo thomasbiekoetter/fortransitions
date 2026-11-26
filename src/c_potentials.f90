@@ -2,7 +2,7 @@ module fortransitions__c_potentials
 !! Potentials whose values are supplied by C function pointers, e.g. by
 !! Python callables wrapped with ctypes. They are used by the bind(C)
 !! interface (modules fortransitions__c_*) for the Python package
-!! pyfortransitions.
+!! fortransitions.
 
   use, intrinsic :: iso_c_binding, only : c_int
   use, intrinsic :: iso_c_binding, only : c_double

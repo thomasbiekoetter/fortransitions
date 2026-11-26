@@ -3,8 +3,8 @@
 *.swo
 # Python interface (python/)
 python/build/
-python/pyfortransitions/lib/
-python/pyfortransitions/include/
+python/fortransitions/lib/
+python/fortransitions/include/
 python/.pixi/
 *.egg-info/
 __pycache__/

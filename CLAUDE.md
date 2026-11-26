@@ -57,14 +57,14 @@ fpm test  --profile debug                # bounds checks, FPE traps (gfortran)
 - `app/full_tunneling_example.f90`: the two-field example from
   `examples/fullTunneling.py`.
 
-- `python/`: the Python package `pyfortransitions` (see
+- `python/`: the Python package `fortransitions` (see
   `python/README.md`). `python/fpm.toml` builds `../src` as a shared
   library. The `Makefile` holds all of the build logic (`make lib`,
   `make wrapper`, `make clean`), and the `pixi.toml` tasks (`install`,
   `test`, `clean`) only call it, so the pixi and manual builds stay in
   sync. The rpath (`$ORIGIN`, plus the env's `lib/` under pixi) is set at
   link time, so no patchelf step is needed. The ctypes wrappers are in
-  `python/pyfortransitions/` (`_lib.py` declares the C signatures), and
+  `python/fortransitions/` (`_lib.py` declares the C signatures), and
   the tests are in `python/test/run_tests.py`.
   `python/test/compare_cosmoTransitions.py` compares the results directly
   against cosmoTransitions; run it in the pixi environment `compare`
@@ -111,19 +111,25 @@ External fpm dependencies: `odeint` (`rkqs_vec` Cash-Karp RK stepper),
   `pixi run python test/run_tests.py --quick`). The manual route is
   `make wrapper` in an environment with numpy. Rebuild after every
   change in `src/`, because the package loads
-  `python/pyfortransitions/lib/libfortransitions.so`.
+  `python/fortransitions/lib/libfortransitions.so`.
 - The pixi environments and a manual install in another Python (e.g. a
-  pyenv env) share `python/pyfortransitions/lib/`: the last `make lib`
+  pyenv env) share `python/fortransitions/lib/`: the last `make lib`
   wins. The Makefile therefore uses one fpm build directory per toolchain
   (`build/<FC>-env-<pixi env>`, `build/<FC>-system`). fpm does not relink
   when only the link flags (rpath) change. Rebuild after switching
   environments.
+- `make wrapper` installs in setuptools' strict editable mode, i.e. a
+  link tree in `python/build/__editable__*` on a plain `sys.path` entry.
+  The default import-hook mode would let the repository folder (also
+  named `fortransitions`) shadow the package as an empty namespace
+  package when Python runs in the repository's parent directory. New
+  files in the package need a reinstall (`make wrapper`).
 - The C interface takes no optional arguments. Python passes every
   value explicitly, with defaults identical to the Fortran ones, and
   "find automatically" options get a `has_*` flag. Any change to the
   arguments of `full_tunneling`, `single_field_instanton%init` or
   `%find_profile` must be carried through to `src/c_*.f90`,
-  `python/pyfortransitions/_lib.py` and the Python wrappers.
+  `python/fortransitions/_lib.py` and the Python wrappers.
 - `c_potential_nd` overrides `grad_many` with one batched callback, so
   that Python evaluates `dV` on all path points in one numpy call. This
   is what makes the path deformation fast from Python. The Python side

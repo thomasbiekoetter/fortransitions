@@ -133,7 +133,7 @@ end module c_interface__callbacks
 
 program c_interface
 !! Tests the bind(C) interface used by the Python package
-!! pyfortransitions (modules fortransitions__c_*): the same problems are
+!! fortransitions (modules fortransitions__c_*): the same problems are
 !! solved through the C interface, with the potential given by C function
 !! pointers, and through the native Fortran API. Both must give identical
 !! results, since they run the same code on the same potential.

@@ -1,4 +1,4 @@
-"""Side-by-side comparison of pyfortransitions with cosmoTransitions.
+"""Side-by-side comparison of fortransitions with cosmoTransitions.
 
 Runs the same problems with both packages, using the very same Python
 potential functions and the same keyword arguments, and prints the
@@ -28,11 +28,11 @@ import cosmoTransitions
 from cosmoTransitions import pathDeformation as ct_pd
 from cosmoTransitions import tunneling1D as ct_t1d
 
-import pyfortransitions as pf
+import fortransitions as ft
 
 # ---------------------------------------------------------------------------
 # Potentials, written in the vectorized cosmoTransitions style (X[..., i]),
-# as cosmoTransitions evaluates them on arrays of points. pyfortransitions
+# as cosmoTransitions evaluates them on arrays of points. fortransitions
 # calls the same functions with one point of shape (ndim,).
 # ---------------------------------------------------------------------------
 
@@ -158,18 +158,18 @@ def compare(case, quantity, ct_val, ft_val, rtol):
 
 
 def run_1d(case, V, dV, rtol, **profile_params):
-    def ct():
+    def run_cosmo():
         inst = ct_t1d.SingleFieldInstanton(1.0, 0.0, V, dV)
         prof = inst.findProfile(**profile_params)
         return inst, prof, inst.findAction(prof)
 
-    def ft():
-        inst = pf.SingleFieldInstanton(1.0, 0.0, V, dV)
+    def run_fortran():
+        inst = ft.SingleFieldInstanton(1.0, 0.0, V, dV)
         prof = inst.findProfile(**profile_params)
         return inst, prof, inst.findAction(prof)
 
-    (ci, cp, ca), t_ct = timed(ct)
-    (fi, fp, fa), t_ft = timed(ft)
+    (ci, cp, ca), t_ct = timed(run_cosmo)
+    (fi, fp, fa), t_ft = timed(run_fortran)
     TIMES.append((case, t_ct, t_ft))
     compare(case, "phi_bar", ci.phi_bar, fi.phi_bar, 1e-4)
     compare(case, "rscale", ci.rscale, fi.rscale, 1e-4)
@@ -180,7 +180,7 @@ def run_1d(case, V, dV, rtol, **profile_params):
 def run_full(case, path, V, dV, rtol, **kwargs):
     ct_res, t_ct = timed(lambda: quiet(
         lambda: ct_pd.fullTunneling(path, V, dV, **kwargs)))
-    ft_res, t_ft = timed(lambda: pf.fullTunneling(path, V, dV, **kwargs))
+    ft_res, t_ft = timed(lambda: ft.fullTunneling(path, V, dV, **kwargs))
     TIMES.append((case, t_ct, t_ft))
     compare(case, "action", ct_res.action, ft_res.action, rtol)
     # The final paths are sampled at different points along the path, so

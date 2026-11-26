@@ -6,7 +6,7 @@ fortransitions__config); they are translated into these exceptions.
 
 
 class FortransitionsError(Exception):
-    """Base class of all errors raised by pyfortransitions.
+    """Base class of all errors raised by fortransitions.
 
     Raised directly for generic numerical failures (root finding, linear
     solve, spline setup) and failed spline evaluations, which have no
