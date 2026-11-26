@@ -105,36 +105,29 @@ contains
   end subroutine report
 
   subroutine write_csv(res, label)
-    !! Write the tunneling path and the 1d profile to CSV files.
-
-    use csv_module, only : csv_file
+    !! Write the tunneling path and the 1d profile to a CSV file with the
+    !! columns r, phi, dphi (the profile) and x, y (the path).
 
     type(full_tunneling_result), intent(in) :: res
     character(len=*), intent(in) :: label
 
-    type(csv_file) :: f
-    logical :: ok
+    character(len=*), parameter :: row_fmt = '(*(g0.17,:,","))'
+    integer :: unit
+    integer :: ios
     integer :: i
-    integer :: n
 
-    n = size(res%profile%r)
-    call f%initialize()
-    call f%open("instanton_"//label//".csv", n_cols=5, status_ok=ok)
-    if (.not. ok) then
+    open(newunit=unit, file="instanton_"//label//".csv", status="replace",  &
+      action="write", iostat=ios)
+    if (ios /= 0) then
       print "(a)", "Could not open CSV file for writing."
       return
     end if
-    call f%add(["r   ", "phi ", "dphi", "x   ", "y   "])
-    call f%next_row()
-    do i = 1, n
-      call f%add(res%profile%r(i))
-      call f%add(res%profile%phi(i))
-      call f%add(res%profile%dphi(i))
-      call f%add(res%phi(i, 1))
-      call f%add(res%phi(i, 2))
-      call f%next_row()
+    write (unit, "(a)") "r,phi,dphi,x,y"
+    do i = 1, size(res%profile%r)
+      write (unit, row_fmt) res%profile%r(i), res%profile%phi(i),  &
+        res%profile%dphi(i), res%phi(i, 1), res%phi(i, 2)
     end do
-    call f%close(ok)
+    close(unit)
     print "(a)", "Wrote instanton_"//label//".csv"
 
   end subroutine write_csv

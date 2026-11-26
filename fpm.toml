@@ -24,7 +24,6 @@ source-form = "free"
 gradmin = { git = "https://gitlab.com/thomas.biekoetter/gradmin.git", profile="release" }
 odeint = { git = "https://github.com/thomasbiekoetter/odeint.git", profile="release" }
 bspline-fortran = { git = "https://github.com/thomasbiekoetter/bspline-fortran.git" }
-csv-fortran = { git="https://github.com/jacobwilliams/csv-fortran.git" }
 
 [features]
 debug.flags = "-fPIC -O0 -g "

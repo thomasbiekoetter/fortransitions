@@ -71,8 +71,9 @@ fpm test  --profile debug                # bounds checks, FPE traps (gfortran)
   (`pixi run -e compare compare`). Only Linux is supported.
 
 External fpm dependencies: `odeint` (`rkqs_vec` Cash-Karp RK stepper),
-`bspline-fortran` (`bspline_1d`, used for all splines), `gradmin`
-(`gauss_jordan` linear solve), and `csv-fortran` (example output).
+`bspline-fortran` (`bspline_1d`, used for all splines), and `gradmin`
+(`gauss_jordan` linear solve). The example program writes its CSV files
+with plain `write` statements, so it needs no CSV library.
 
 ## Conventions
 
