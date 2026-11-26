@@ -150,14 +150,12 @@ contains
     self%v2 = dphidr**2
     if (v2min_ > 0.0_wp) then
       block
-        ! Contiguous copy of the point: passing a strided section directly
-        ! to the deferred type-bound grad() can miscompile with gfortran.
-        real(wp), allocatable :: xpt(:)
-        allocate(xpt(size(phi, 2)))
+        real(wp), allocatable :: dv_all(:, :)
+        allocate(dv_all(n, size(phi, 2)))
+        call pot%grad_many(phi, dv_all)
         dvmax = 0.0_wp
         do i = 1, n
-          xpt = phi(i, :)
-          dvmax = max(dvmax, norm2(pot%grad(xpt)))
+          dvmax = max(dvmax, norm2(dv_all(i, :)))
         end do
       end block
       v2min_ = v2min_*dvmax*self%length/real(nb_, wp)
@@ -183,13 +181,11 @@ contains
     real(wp), allocatable :: d2phi(:, :)
     real(wp), allocatable :: dphids(:, :)
     real(wp), allocatable :: d2phids2(:, :)
-    real(wp), allocatable :: xpt(:)
     real(wp) :: dphi_sq
     real(wp) :: proj
 
     n = size(self%phi, 1)
     ndim = size(self%phi, 2)
-    allocate(xpt(ndim))
 
     ! First find dphi and d2phi with respect to the path parameter t. Note
     ! that dphi needs a linear component added in, while d2phi does not.
@@ -209,14 +205,14 @@ contains
     allocate(d2phids2(n, ndim))
     allocate(f_norm(n, ndim))
     allocate(dv(n, ndim))
+    ! The potential gradient at all points of the path at once.
+    call self%pot%grad_many(self%phi, dv)
     do i = 1, n
       dphi_sq = sum(dphi(i, :)*dphi(i, :))
       dphids(i, :) = dphi(i, :)/sqrt(dphi_sq)
       d2phids2(i, :) = (d2phi(i, :)  &
         - dphi(i, :)*sum(dphi(i, :)*d2phi(i, :))/dphi_sq)/dphi_sq
       ! Now get the normal force acting on the path.
-      xpt = self%phi(i, :)
-      dv(i, :) = self%pot%grad(xpt)
       proj = sum(dv(i, :)*dphids(i, :))
       f_norm(i, :) = d2phids2(i, :)*self%v2(i)  &
         - (dv(i, :) - proj*dphids(i, :))

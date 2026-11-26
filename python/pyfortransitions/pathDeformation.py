@@ -87,7 +87,8 @@ def fullTunneling(path_pts, V, dV, maxiter=20, fixEndCutoff=.03,
                   tunneling_findProfile_params={},
                   deformation_class=None,
                   deformation_init_params={},
-                  deformation_deform_params={}):
+                  deformation_deform_params={},
+                  vectorized=None):
     """Calculate the instanton solution in multiple field dimensions.
 
     Python interface to the Fortran port of
@@ -103,7 +104,10 @@ def fullTunneling(path_pts, V, dV, maxiter=20, fixEndCutoff=.03,
         point at the metastable minimum.
     V, dV : callable
         The potential V(X) and its gradient dV(X), called with a 1d array X
-        of shape (ndim,); dV must return ndim values.
+        of shape (ndim,); dV must return ndim values. In the path
+        deformation, dV is also called with all points of the path at once,
+        X of shape (npts, ndim), and must then return an array of the same
+        shape, like in cosmoTransitions (see `vectorized`).
     maxiter : int, optional
         Maximum number of tunneling/deformation iterations (default 20).
     fixEndCutoff : float, optional
@@ -123,6 +127,13 @@ def fullTunneling(path_pts, V, dV, maxiter=20, fixEndCutoff=.03,
         Supported keys: ``nb``, ``kb``, ``fix_start``, ``fix_end``.
     deformation_deform_params : dict, optional
         Supported key: ``verbose`` (default: the value of `verbose`).
+    vectorized : bool or None, optional
+        Whether dV can be called with many points at once (not part of
+        cosmoTransitions). None (default) detects it on the first call: dV
+        is used with X of shape (npts, ndim) if it returns an array of that
+        shape that agrees with point-by-point evaluations; otherwise dV is
+        evaluated point by point (slower). True always passes all points
+        at once; False always evaluates point by point.
 
     The options `save_all_steps`, `callback`, other tunneling and
     deformation classes and other parameter keys are not supported and
@@ -181,11 +192,13 @@ def fullTunneling(path_pts, V, dV, maxiter=20, fixEndCutoff=.03,
                          "nb >= kb - 1")
 
     guard = CallbackGuard()
-    v_cb, grad_cb = nd_callbacks(V, dV, guard)
+    if vectorized not in (None, True, False):
+        raise ValueError("vectorized must be None, True or False")
+    v_cb, grad_cb, grad_many_cb = nd_callbacks(V, dV, guard, vectorized)
     handle = ctypes.c_void_p()
     status = ctypes.c_int()
     _lib.full_tunneling(
-        pts.shape[0], pts.shape[1], pts, v_cb, grad_cb,
+        pts.shape[0], pts.shape[1], pts, v_cb, grad_cb, grad_many_cb,
         maxiter, int(bool(verbose)),
         int(bool(ddp.get("verbose", verbose))),
         100 if V_spline_samples is None else int(V_spline_samples),

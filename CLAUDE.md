@@ -99,6 +99,11 @@ External fpm dependencies: `odeint` (`rkqs_vec` Cash-Karp RK stepper),
 - Users supply potentials by extending `potential_nd` (deferred `v`,
   `grad`) or `potential_1d` (deferred `v`; `dv`/`d2v` default to finite
   differences). Their methods take `class(...), intent(inout) :: self`.
+  `potential_nd%grad_many(x, dv)` evaluates the gradient at all points of
+  an `(npts, ndim)` array. It loops over `grad` by default and can be
+  overridden with a vectorized version. Code that needs the gradient at
+  many points at once (the path deformation: `dfs_forces`, the `v2min`
+  loop in `dfs_init`) must call `grad_many`, not `grad` in a loop.
 
 ## Python interface
 
@@ -113,6 +118,12 @@ External fpm dependencies: `odeint` (`rkqs_vec` Cash-Karp RK stepper),
   arguments of `full_tunneling`, `single_field_instanton%init` or
   `%find_profile` must be carried through to `src/c_*.f90`,
   `python/pyfortransitions/_lib.py` and the Python wrappers.
+- `c_potential_nd` overrides `grad_many` with one batched callback, so
+  that Python evaluates `dV` on all path points in one numpy call. This
+  is what makes the path deformation fast from Python. The Python side
+  (`_Vectorization` in `_callbacks.py`) checks on the first call whether
+  the user's `dV` accepts `(npts, ndim)` arrays, and falls back to
+  point-by-point evaluation otherwise (`fullTunneling(vectorized=...)`).
 - Python exceptions in callbacks are stored, and the callbacks return
   NaN from then on. The Fortran code must therefore end promptly on NaN
   input: write loop guards NaN-safe (`.not. (x <= limit)`), and return

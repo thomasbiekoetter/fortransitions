@@ -36,11 +36,71 @@ class CallbackGuard:
             raise err
 
 
-def nd_callbacks(V, dV, guard):
+def _grad_per_point(dV, X):
+    """dV evaluated point by point at the rows of X, shape (npts, ndim)."""
+    npts, n = X.shape
+    out = np.empty((npts, n))
+    for i in range(npts):
+        dv = np.asarray(dV(X[i].copy()), dtype=np.float64)
+        if dv.size != n:
+            raise ValueError(
+                "dV(X) returned {} values for {} fields".format(dv.size, n))
+        out[i] = dv.reshape(n)
+    return out
+
+
+class _Vectorization:
+    """Decides whether dV can be called with many points at once.
+
+    mode None (auto): the first batched call checks that dV(X) with X of
+    shape (npts, ndim) returns an array of the same shape whose rows agree
+    with point-by-point evaluations at two sample points. If not (or if the
+    call raises an ordinary exception), dV is evaluated point by point from
+    then on. mode True: always batched (a wrong shape is an error). mode
+    False: never batched (handled by passing a null callback).
+    """
+
+    def __init__(self, mode):
+        self.mode = mode
+
+    def gradients(self, dV, X):
+        npts, n = X.shape
+        if self.mode is True:
+            dv = np.asarray(dV(X), dtype=np.float64)
+            if dv.shape != (npts, n):
+                raise ValueError(
+                    "vectorized dV(X) with X of shape {} returned shape {}; "
+                    "expected {}".format(X.shape, dv.shape, (npts, n)))
+            return dv
+        if self.mode is False:
+            return _grad_per_point(dV, X)
+        # Auto-detection on the first call.
+        try:
+            dv = np.asarray(dV(X.copy()), dtype=np.float64)
+            ok = dv.shape == (npts, n)
+            if ok:
+                for i in sorted({0, npts // 2}):
+                    ref = np.asarray(dV(X[i].copy()), dtype=np.float64)
+                    if ref.size != n or not np.allclose(
+                            dv[i], ref.reshape(n), rtol=1e-10,
+                            atol=1e-12 * max(1.0, np.max(np.abs(ref)))):
+                        ok = False
+                        break
+        except Exception:
+            ok = False
+        self.mode = ok
+        return dv if ok else _grad_per_point(dV, X)
+
+
+def nd_callbacks(V, dV, guard, vectorized=None):
     """C callbacks for a multi-field potential V(X) and its gradient dV(X).
 
-    X is passed as a fresh 1d array of shape (ndim,), so potentials written
-    for cosmoTransitions (using e.g. ``X[..., 0]``) work unchanged.
+    For single points, X is passed as a fresh 1d array of shape (ndim,), so
+    potentials written for cosmoTransitions (using e.g. ``X[..., 0]``) work
+    unchanged. The third callback evaluates the gradient on all points of
+    the path at once (X of shape (npts, ndim)); see _Vectorization for the
+    meaning of `vectorized`. With vectorized=False it is a null pointer, and
+    the Fortran code calls the single-point callback for each point.
     """
 
     def v_cb(n, x_ptr):
@@ -69,7 +129,25 @@ def nd_callbacks(V, dV, guard):
             guard.error = err
             g[:] = _NAN
 
-    return _lib.V_ND_CB(v_cb), _lib.GRAD_ND_CB(grad_cb)
+    vec = _Vectorization(vectorized)
+
+    def grad_many_cb(npts, n, x_ptr, g_ptr):
+        # Column-major (npts, n) arrays, viewed as (npts, n) numpy arrays.
+        g = np.ctypeslib.as_array(g_ptr, shape=(n, npts)).T
+        if guard.error is not None:
+            g[:] = _NAN
+            return
+        try:
+            X = np.ascontiguousarray(
+                np.ctypeslib.as_array(x_ptr, shape=(n, npts)).T)
+            g[:] = vec.gradients(dV, X)
+        except BaseException as err:  # noqa: B902
+            guard.error = err
+            g[:] = _NAN
+
+    grad_many = (_lib.GRAD_MANY_CB() if vectorized is False
+                 else _lib.GRAD_MANY_CB(grad_many_cb))
+    return _lib.V_ND_CB(v_cb), _lib.GRAD_ND_CB(grad_cb), grad_many
 
 
 def f1d_callback(f, guard):

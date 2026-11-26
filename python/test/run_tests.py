@@ -88,7 +88,8 @@ def dv2_thick(phi):
 
 def example_potential(c=5.0, fx=10.0, fy=10.0):
     """The two-field potential of examples/fullTunneling.py, written in the
-    cosmoTransitions style (X[..., i])."""
+    vectorized cosmoTransitions style (X[..., i]), so that dV can be
+    evaluated on all points of the path at once."""
 
     def V(X):
         x, y = X[..., 0], X[..., 1]
@@ -101,39 +102,43 @@ def example_potential(c=5.0, fx=10.0, fy=10.0):
         x, y = X[..., 0], X[..., 1]
         r1 = x * x + c * y * y
         r2 = c * (x - 1)**2 + (y - 1)**2
-        dx = r1 * 2 * c * (x - 1) + 2 * x * r2 + fx * x * x * (x - 1)
-        dy = r1 * 2 * (y - 1) + 2 * c * y * r2 + fy * y * y * (y - 1)
-        return np.array([dx, dy])
+        rval = np.empty_like(X, dtype=float)
+        rval[..., 0] = r1 * 2 * c * (x - 1) + 2 * x * r2 + fx * x * x * (x - 1)
+        rval[..., 1] = r1 * 2 * (y - 1) + 2 * c * y * r2 + fy * y * y * (y - 1)
+        return rval
 
     return V, dV
 
 
 def narrow_barrier_potential(a=1.0, b=0.004, g=0.3):
     def V(X):
-        x, y = X[0], X[1]
+        x, y = X[..., 0], X[..., 1]
         return (a * (0.25 * x**4 - (1 + b) * x**3 / 3 + 0.5 * b * x**2)
                 + (y - g * x**2)**2)
 
     def dV(X):
-        x, y = X[0], X[1]
-        return np.array([
-            a * x * (x - b) * (x - 1) - 4 * g * x * (y - g * x**2),
-            2 * (y - g * x**2)])
+        x, y = X[..., 0], X[..., 1]
+        rval = np.empty_like(X, dtype=float)
+        rval[..., 0] = a * x * (x - b) * (x - 1) - 4 * g * x * (y - g * x**2)
+        rval[..., 1] = 2 * (y - g * x**2)
+        return rval
 
     return V, dV
 
 
 def double_well_potential(c, a=1.8, b=0.2):
     def V(X):
-        x, y = X[0], X[1]
+        x, y = X[..., 0], X[..., 1]
         return (x**2 + y**2) * (a * (x - 1)**2 + b * (y - 1)**2 - c)
 
     def dV(X):
-        x, y = X[0], X[1]
+        x, y = X[..., 0], X[..., 1]
         f = a * (x - 1)**2 + b * (y - 1)**2 - c
         r = x**2 + y**2
-        return np.array([2 * x * f + r * 2 * a * (x - 1),
-                         2 * y * f + r * 2 * b * (y - 1)])
+        rval = np.empty_like(X, dtype=float)
+        rval[..., 0] = 2 * x * f + r * 2 * a * (x - 1)
+        rval[..., 1] = 2 * y * f + r * 2 * b * (y - 1)
+        return rval
 
     return V, dV
 
@@ -143,17 +148,18 @@ def many_fields_potential(ndim):
     m2 = 2.0 + 0.2 * np.arange(1, ndim)
 
     def V(X):
-        phi = X[0]
-        d = X[1:] - a * phi * phi
-        return 0.4 * phi**2 - 1.6 * phi**3 + phi**4 + 0.5 * np.sum(m2 * d * d)
+        phi = X[..., 0]
+        d = X[..., 1:] - a * phi[..., None]**2
+        return (0.4 * phi**2 - 1.6 * phi**3 + phi**4
+                + 0.5 * np.sum(m2 * d * d, axis=-1))
 
     def dV(X):
-        phi = X[0]
-        d = X[1:] - a * phi * phi
-        g = np.empty(ndim)
-        g[0] = (0.8 * phi - 4.8 * phi**2 + 4.0 * phi**3
-                - 2.0 * phi * np.sum(m2 * a * d))
-        g[1:] = m2 * d
+        phi = X[..., 0]
+        d = X[..., 1:] - a * phi[..., None]**2
+        g = np.empty_like(X, dtype=float)
+        g[..., 0] = (0.8 * phi - 4.8 * phi**2 + 4.0 * phi**3
+                     - 2.0 * phi * np.sum(m2 * a * d, axis=-1))
+        g[..., 1:] = m2 * d
         return g
 
     return V, dV, np.concatenate([[1.0], a])
@@ -355,12 +361,17 @@ def test_errors():
                 "({} calls)".format(calls), calls == 201)
 
     V, dV = example_potential(c=5.0, fx=0.0, fy=80.0)
-    dv, count = failing_after(50, dV)
-    t0 = time.time()
-    assert_raises("exception in dV during fullTunneling", Boom,
-                  lambda: pf.fullTunneling([[1, 1], [0, 0]], V, dv))
-    assert_true("fullTunneling stops quickly after the exception",
-                time.time() - t0 < 5.0 and count[0] == 51)
+    for vectorized, k in [(None, 10), (True, 10), (False, 50)]:
+        dv, count = failing_after(k, dV)
+        t0 = time.time()
+        assert_raises(
+            "exception in dV during fullTunneling (vectorized={})".format(
+                vectorized), Boom,
+            lambda: pf.fullTunneling([[1, 1], [0, 0]], V, dv,
+                                     vectorized=vectorized))
+        assert_true("fullTunneling stops quickly after the exception "
+                    "(vectorized={})".format(vectorized),
+                    time.time() - t0 < 5.0 and count[0] == k + 1)
 
     v, _ = failing_after(10, V, exc=KeyboardInterrupt)
     assert_raises("KeyboardInterrupt in V", KeyboardInterrupt,
@@ -374,6 +385,80 @@ def test_errors():
     inst = pf.SingleFieldInstanton(1.0, 0.0, v1_thin, dv1_thin)
     assert_close("instanton usable after errors",
                  inst.findAction(inst.findProfile()), 1.0927555625e3, 5e-3)
+
+
+def test_vectorization():
+    from pyfortransitions._callbacks import _Vectorization
+
+    V, dV = example_potential(c=5.0, fx=0.0, fy=2.0)
+    path = [[1.0, 1.0], [0.0, 0.0]]
+    calls = {"n": 0, "batched": 0}
+
+    def counting_dV(X):
+        calls["n"] += 1
+        calls["batched"] += np.ndim(X) == 2
+        return dV(X)
+
+    res_auto = pf.fullTunneling(path, V, counting_dV)
+    n_auto, n_batched = calls["n"], calls["batched"]
+    calls.update(n=0, batched=0)
+    res_off = pf.fullTunneling(path, V, counting_dV, vectorized=False)
+    n_off = calls["n"]
+    res_on = pf.fullTunneling(path, V, dV, vectorized=True)
+    # numpy may round differently in the last bit when evaluating an array
+    # instead of a single point, so the results agree to rounding only.
+    assert_true("vectorized auto and True identical",
+                res_auto.action == res_on.action)
+    assert_close("vectorized auto vs. False (point by point)",
+                 res_auto.action, res_off.action, 1e-10)
+    assert_true("vectorized auto: dV batched ({} of {} calls, vs. {} "
+                "calls point by point)".format(n_batched, n_auto, n_off),
+                n_batched > 10 and n_auto < n_off / 100)
+    assert_close("2d thin, vectorized: action", res_auto.action,
+                 1.7669376756e3, 5e-3)
+
+    # A potential written for single points only (plain floats) is
+    # detected and evaluated point by point.
+    c, fy = 5.0, 2.0
+
+    def V_float(X):
+        x, y = float(X[0]), float(X[1])
+        return (x * x + c * y * y) * (c * (x - 1)**2 + (y - 1)**2) \
+            + fy * (0.25 * y**4 - y**3 / 3.)
+
+    def dV_float(X):
+        x, y = float(X[0]), float(X[1])
+        r1 = x * x + c * y * y
+        r2 = c * (x - 1)**2 + (y - 1)**2
+        return [r1 * 2 * c * (x - 1) + 2 * x * r2,
+                r1 * 2 * (y - 1) + 2 * c * y * r2 + fy * y * y * (y - 1)]
+
+    res_float = pf.fullTunneling(path, V_float, dV_float)
+    assert_close("single-point dV detected, same action",
+                 res_float.action, res_off.action, 1e-10)
+    assert_raises("single-point dV with vectorized=True",
+                  (TypeError, ValueError),
+                  lambda: pf.fullTunneling(path, V_float, dV_float,
+                                           vectorized=True))
+    assert_raises("invalid vectorized value", ValueError,
+                  lambda: pf.fullTunneling(path, V, dV, vectorized="yes"))
+
+    # A non-vectorized dV that happens to return the right shape (here for
+    # npts == ndim) must not be mistaken for a vectorized one.
+    def swap(X):
+        x, y = X  # unpacks the first axis: wrong for X of shape (npts, 2)
+        return np.array([y, x])
+
+    vec = _Vectorization(None)
+    X = np.array([[1.0, 2.0], [3.0, 4.0]])
+    out = vec.gradients(swap, X)
+    assert_true("same-shape non-vectorized dV detected",
+                vec.mode is False
+                and np.array_equal(out, [[2.0, 1.0], [4.0, 3.0]]))
+    vec = _Vectorization(None)
+    out = vec.gradients(lambda X: 2 * X, X)
+    assert_true("vectorized dV detected",
+                vec.mode is True and np.array_equal(out, 2 * X))
 
 
 def test_validation():
@@ -447,6 +532,7 @@ def main():
         ("check: narrow barrier", test_narrow_barrier),
         ("double_well", test_double_well),
         ("many_fields", lambda: test_many_fields(10 if quick else 20)),
+        ("vectorization", test_vectorization),
         ("errors", test_errors),
         ("validation", test_validation),
         ("memory", test_memory),

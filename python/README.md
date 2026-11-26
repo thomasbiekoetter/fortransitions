@@ -62,17 +62,25 @@ def dV(X):
     x, y = X[..., 0], X[..., 1]
     r1 = x*x + 5*y*y
     r2 = 5*(x - 1)**2 + (y - 1)**2
-    return np.array([r1*10*(x - 1) + 2*x*r2,
-                     r1*2*(y - 1) + 10*y*r2 + 80*y*y*(y - 1)])
+    g = np.empty_like(X)
+    g[..., 0] = r1*10*(x - 1) + 2*x*r2
+    g[..., 1] = r1*2*(y - 1) + 10*y*r2 + 80*y*y*(y - 1)
+    return g
 
 # First point at the stable minimum, last point at the metastable one.
 res = fullTunneling([[1.0, 1.0], [0.0, 0.0]], V, dV)
 print(res.action, res.fRatio)
 ```
 
-`V` and `dV` are called with a 1d array `X` of shape `(ndim,)`. Potentials
-written for cosmoTransitions (indexing with `X[..., i]`) therefore work
-unchanged. The result has the fields of cosmoTransitions'
+`V` and `dV` are called with a single point, a 1d array `X` of shape
+`(ndim,)`. In the path deformation, `dV` is also called with all points
+of the path at once, an array of shape `(npts, ndim)`, and must then
+return an array of the same shape. This is the same convention as in
+cosmoTransitions, so potentials written for it (indexing with `X[..., i]`)
+work unchanged. A `dV` that only handles single points is detected and
+evaluated point by point instead, which is slower (see
+[Performance](#performance)). The option `vectorized=True` or `False`
+skips the detection. The result has the fields of cosmoTransitions'
 `fullTunneling_rval` (`profile1D`, `Phi`, `action`, `fRatio`,
 `saved_steps`). It also has the attributes `action_pot` and `action_kin`
 (the action from only the potential or only the kinetic term, rescaled by
@@ -149,21 +157,27 @@ pixi run -e compare compare            # or: ... compare --quick
 
 ## Performance
 
-The Fortran code calls `V` and `dV` once per point, while cosmoTransitions
-evaluates them on whole arrays of points. For one-field problems and
-moderate path deformations, pyfortransitions is several times to ~30x
-faster. When the path deformation needs many steps, the per-point Python
-calls dominate the run time, and pyfortransitions can be slower than
-cosmoTransitions: about 3x slower for the two-field example of
-cosmoTransitions. Most of the time then goes into evaluating `dV` in
-numpy for a single point. Writing `V` and `dV` with plain floats for one
-point, instead of numpy array operations, reduces this. For the
-two-field example, this brings the time from 2.6 s to 1.0 s, with an
-identical result (cosmoTransitions: 0.7 s):
+The 1d tunneling runs entirely in Fortran and calls `V` and `dV` one
+point at a time. The path deformation evaluates `dV` at all points of the
+path, about 750 of them, at every deformation step. It does this in a
+single call per step, as cosmoTransitions does, so numpy evaluates all
+points in one vectorized operation.
 
-```python
-def dV(X):
-    x, y = float(X[0]), float(X[1])
-    ...
-    return [dVdx, dVdy]
-```
+For this to work, `dV` must accept an array of shape `(npts, ndim)`, as
+in the example above. Otherwise pyfortransitions falls back to calling
+`dV` once per point, which costs about 50 µs per point. For the
+two-field example of cosmoTransitions (`examples/fullTunneling.py`):
+
+| `dV` | pyfortransitions | cosmoTransitions |
+| ---- | ---------------- | ---------------- |
+| vectorized (`X[..., i]`, `np.empty_like`) | 0.05 s | 0.66 s |
+| single points only, plain floats | 0.30 s | (fails) |
+| vectorized, but `vectorized=False` | 2.6 s | |
+
+For all test problems of `test/compare_cosmoTransitions.py`, with
+vectorized potentials, pyfortransitions is 10–40x faster for one-field
+problems, about 10x for the two-field example, about 60x for the double
+well and 40–70x for 2–10 fields. The narrow barrier with
+`V_spline_samples=None` is 5x faster: there, the 1d tunneling has to call
+`V` and `dV` one point at a time. Over all problems it is 27x faster
+(1.9 s vs. 52 s).

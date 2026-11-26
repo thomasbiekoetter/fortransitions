@@ -19,11 +19,15 @@ module c_interface__callbacks
   public :: dv1
   public :: v2d_c
   public :: grad2d_c
+  public :: grad2d_many_c
+  public :: nbatch
   public :: pot2d
   public :: ncalls
 
   integer, save :: ncalls = 0
     !! Number of potential evaluations through the C callbacks.
+  integer, save :: nbatch = 0
+    !! Number of calls of the batched gradient callback.
 
   type, extends(potential_nd) :: pot2d
   contains
@@ -99,6 +103,18 @@ contains
     g = grad2d(x)
   end subroutine grad2d_c
 
+  subroutine grad2d_many_c(npts, n, x, g) bind(C)
+    integer(c_int), value :: npts
+    integer(c_int), value :: n
+    real(c_double), intent(in) :: x(npts, n)
+    real(c_double), intent(out) :: g(npts, n)
+    integer :: i
+    nbatch = nbatch + 1
+    do i = 1, npts
+      g(i, :) = grad2d(x(i, :))
+    end do
+  end subroutine grad2d_many_c
+
   function pot2d_v(self, x) result(y)
     class(pot2d), intent(inout) :: self
     real(wp), intent(in) :: x(:)
@@ -127,6 +143,7 @@ program c_interface
   use, intrinsic :: iso_c_binding, only : c_ptr
   use, intrinsic :: iso_c_binding, only : c_funloc
   use, intrinsic :: iso_c_binding, only : c_null_funptr
+  use, intrinsic :: iso_c_binding, only : c_funptr
   use, intrinsic :: iso_c_binding, only : c_associated
 
   use fortransitions, only : wp
@@ -160,6 +177,8 @@ program c_interface
   use c_interface__callbacks, only : dv1
   use c_interface__callbacks, only : v2d_c
   use c_interface__callbacks, only : grad2d_c
+  use c_interface__callbacks, only : grad2d_many_c
+  use c_interface__callbacks, only : nbatch
   use c_interface__callbacks, only : pot2d
   use c_interface__callbacks, only : ncalls
 
@@ -283,7 +302,9 @@ contains
   end subroutine test_sfi_stable
 
   subroutine test_full_tunneling()
-    !! full_tunneling through the C interface vs. natively.
+    !! full_tunneling through the C interface vs. natively, with the
+    !! gradient on the path evaluated point by point (null grad_many_cb)
+    !! and in batches (grad_many_cb).
 
     type(pot2d), target :: pot
     type(full_tunneling_result) :: res
@@ -305,22 +326,34 @@ contains
     real(c_double), allocatable :: dphi(:)
     real(c_double), allocatable :: phi_path(:, :)
     integer(c_int) :: v_mode
+    integer :: batched
+    type(c_funptr) :: grad_many_ptr
+    character(len=24) :: tag
 
     path_pts(1, :) = [1.0_wp, 1.0_wp]
     path_pts(2, :) = [0.0_wp, 0.0_wp]
 
     do v_mode = 0, 1
+    do batched = 0, 1
       if (v_mode == 0) then
         call full_tunneling(path_pts, pot, res, st)
       else
         call full_tunneling(path_pts, pot, res, st, v_mode="direct")
       end if
       call check_true("ft native status", st == status_ok)
+      if (batched == 1) then
+        grad_many_ptr = c_funloc(grad2d_many_c)
+      else
+        grad_many_ptr = c_null_funptr
+      end if
+      write (tag, "(a,i0,a,i0)") "v_mode ", v_mode, ", batched ", batched
+      print "(a,a)", "--- ", trim(tag)
 
       ncalls = 0
+      nbatch = 0
       call fortransitions_full_tunneling(2_c_int, 2_c_int,  &
         real(path_pts, c_double), c_funloc(v2d_c), c_funloc(grad2d_c),  &
-        20_c_int, 0_c_int, 0_c_int, 100_c_int, v_mode, 2.0_c_double,  &
+        grad_many_ptr, 20_c_int, 0_c_int, 0_c_int, 100_c_int, v_mode, 2.0_c_double,  &
         500_c_int, 10_c_int, 3_c_int, 0_c_int, 0_c_int, 1.0e-4_c_double,  &
         1.0e-4_c_double, h, status)
       call check_true("ft status", status == status_ok)
@@ -344,10 +377,14 @@ contains
         all(r == res%profile%r) .and. all(phi == res%profile%phi)  &
         .and. all(dphi == res%profile%dphi) .and. all(phi_path == res%phi))
       call check_true("ft callbacks used", ncalls > 0)
-      print "(a,i0,a,es20.12,a,i0,a)", "v_mode ", v_mode, ": action = ",  &
-        action, " (", ncalls, " callback evaluations)"
+      call check_true("ft batched callback used iff given",  &
+        (nbatch > 0) .eqv. (batched == 1))
+      print "(a,a,es20.12,a,i0,a,i0,a)", trim(tag), ": action = ",  &
+        action, " (", ncalls, " V evaluations, ", nbatch,  &
+        " batched gradient calls)"
       deallocate(r, phi, dphi, phi_path)
       call fortransitions_ft_result_free(h)
+    end do
     end do
 
   end subroutine test_full_tunneling

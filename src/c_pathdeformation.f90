@@ -39,12 +39,14 @@ module fortransitions__c_pathdeformation
 contains
 
   subroutine fortransitions_full_tunneling(npts, ndim, path_pts, v_cb,  &
-      grad_cb, maxiter, verbose, deform_verbose, v_spline_samples,  &
+      grad_cb, grad_many_cb, maxiter, verbose, deform_verbose, v_spline_samples,  &
       v_mode, alpha, npoints, nb, kb, fix_start, fix_end, xtol, phitol,  &
       handle, status) bind(C, name="fortransitions_full_tunneling")
     !! Calls full_tunneling with a potential given by C callbacks. All
     !! options are passed explicitly (no optional arguments); logical
-    !! flags are 0/1, and v_mode is 0 ("spline") or 1 ("direct"). On
+    !! flags are 0/1, and v_mode is 0 ("spline") or 1 ("direct").
+    !! `grad_many_cb` may be a null pointer; otherwise it evaluates the
+    !! gradient at all path points at once in the path deformation. On
     !! success, `handle` points to the result; on failure, it is null and
     !! `status` holds the error code.
 
@@ -54,6 +56,7 @@ contains
       !! Initial path, column-major shape (npts, ndim).
     type(c_funptr), value, intent(in) :: v_cb
     type(c_funptr), value, intent(in) :: grad_cb
+    type(c_funptr), value, intent(in) :: grad_many_cb
     integer(c_int), value, intent(in) :: maxiter
     integer(c_int), value, intent(in) :: verbose
     integer(c_int), value, intent(in) :: deform_verbose
@@ -76,7 +79,7 @@ contains
     integer :: st
 
     handle = c_null_ptr
-    pot = new_c_potential_nd(v_cb, grad_cb)
+    pot = new_c_potential_nd(v_cb, grad_cb, grad_many_cb)
     if (v_mode == 1) then
       mode = "direct"
     else

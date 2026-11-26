@@ -16,6 +16,7 @@ module fortransitions__potentials
   public :: pot1d_func
   public :: potential_1d_dv
   public :: potential_1d_d2v
+  public :: potential_nd_grad_many
 
   type, abstract :: potential_1d
     !! A one-dimensional potential V(phi). The first and second derivatives
@@ -45,10 +46,14 @@ module fortransitions__potentials
   type, abstract :: potential_nd
     !! A multi-field potential V(x) with its gradient, x having ndim
     !! components. This plays the role of the (V, dV) callable pair passed
-    !! to pathDeformation.fullTunneling.
+    !! to pathDeformation.fullTunneling. `grad_many` evaluates the gradient
+    !! at many points at once (used for the forces on the whole path in the
+    !! path deformation); by default it calls `grad` point by point, but it
+    !! can be overridden with a vectorized implementation.
   contains
     procedure(potnd_v), deferred :: v
     procedure(potnd_dv), deferred :: grad
+    procedure :: grad_many => potential_nd_grad_many
   end type potential_nd
 
   abstract interface
@@ -125,6 +130,29 @@ contains
       - self%v(phi + 2.0_wp*eps))/(12.0_wp*eps*eps)
 
   end function potential_1d_d2v
+
+  subroutine potential_nd_grad_many(self, x, dv)
+    !! Gradient at the points x(i, :), i = 1..npts, stored in dv(i, :).
+    !! Default implementation: call `grad` for each point.
+
+    class(potential_nd), intent(inout) :: self
+    real(wp), intent(in) :: x(:, :)
+      !! The points, shape (npts, ndim).
+    real(wp), intent(out) :: dv(:, :)
+      !! The gradients, shape (npts, ndim).
+
+    real(wp), allocatable :: xpt(:)
+    integer :: i
+
+    allocate(xpt(size(x, 2)))
+    do i = 1, size(x, 1)
+      ! Contiguous copy of the point: passing a strided section directly
+      ! to the deferred type-bound grad() can miscompile with gfortran.
+      xpt = x(i, :)
+      dv(i, :) = self%grad(xpt)
+    end do
+
+  end subroutine potential_nd_grad_many
 
   function pot1d_func_v(self, phi) result(y)
 

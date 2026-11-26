@@ -31,6 +31,7 @@ p_void_p = ctypes.POINTER(ctypes.c_void_p)
 # Callback prototypes (abstract interfaces in fortransitions__c_potentials)
 V_ND_CB = ctypes.CFUNCTYPE(c_double, c_int, p_double)
 GRAD_ND_CB = ctypes.CFUNCTYPE(None, c_int, p_double, p_double)
+GRAD_MANY_CB = ctypes.CFUNCTYPE(None, c_int, c_int, p_double, p_double)
 F_1D_CB = ctypes.CFUNCTYPE(c_double, c_double)
 
 
@@ -49,7 +50,7 @@ def _declare(name, argtypes):
 # full_tunneling
 full_tunneling = _declare("fortransitions_full_tunneling", [
     c_int, c_int, _arr(2, "F"),           # npts, ndim, path_pts
-    V_ND_CB, GRAD_ND_CB,                  # v_cb, grad_cb
+    V_ND_CB, GRAD_ND_CB, GRAD_MANY_CB,    # v_cb, grad_cb, grad_many_cb
     c_int, c_int, c_int,                  # maxiter, verbose, deform_verbose
     c_int, c_int,                         # v_spline_samples, v_mode
     c_double, c_int, c_int, c_int,        # alpha, npoints, nb, kb

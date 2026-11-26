@@ -15,6 +15,7 @@ module fortransitions__c_potentials
   use fortransitions__potentials, only : potential_nd
   use fortransitions__potentials, only : potential_1d_dv
   use fortransitions__potentials, only : potential_1d_d2v
+  use fortransitions__potentials, only : potential_nd_grad_many
 
   implicit none
 
@@ -22,6 +23,7 @@ module fortransitions__c_potentials
 
   public :: v_nd_cb
   public :: grad_nd_cb
+  public :: grad_many_nd_cb
   public :: f_1d_cb
   public :: c_potential_nd
   public :: c_potential_1d
@@ -47,6 +49,18 @@ module fortransitions__c_potentials
       real(c_double), intent(out) :: g(n)
     end subroutine grad_nd_cb
 
+    subroutine grad_many_nd_cb(npts, n, x, g) bind(C)
+      !! C signature: void grad_many(int npts, int n, const double *x,
+      !! double *g), with x and g column-major arrays of shape (npts, n):
+      !! the gradient at all points x(i, :) at once.
+      import :: c_int, c_double
+      implicit none
+      integer(c_int), value :: npts
+      integer(c_int), value :: n
+      real(c_double), intent(in) :: x(npts, n)
+      real(c_double), intent(out) :: g(npts, n)
+    end subroutine grad_many_nd_cb
+
     function f_1d_cb(phi) result(y) bind(C)
       !! C signature: double f(double phi). Used for V, dV and d2V of a
       !! one-dimensional potential.
@@ -59,11 +73,15 @@ module fortransitions__c_potentials
 
   type, extends(potential_nd) :: c_potential_nd
     !! Multi-field potential V(x) and its gradient given by C callbacks.
+    !! `grad_manyf` is optional; if associated, it evaluates the gradient
+    !! at all points of the path in a single call (grad_many).
     procedure(v_nd_cb), pointer, nopass :: vf => null()
     procedure(grad_nd_cb), pointer, nopass :: gradf => null()
+    procedure(grad_many_nd_cb), pointer, nopass :: grad_manyf => null()
   contains
     procedure :: v => c_potential_nd_v
     procedure :: grad => c_potential_nd_grad
+    procedure :: grad_many => c_potential_nd_grad_many
   end type c_potential_nd
 
   type, extends(potential_1d) :: c_potential_1d
@@ -81,15 +99,20 @@ module fortransitions__c_potentials
 
 contains
 
-  function new_c_potential_nd(v_ptr, grad_ptr) result(pot)
-    !! Build a c_potential_nd from C function pointers.
+  function new_c_potential_nd(v_ptr, grad_ptr, grad_many_ptr) result(pot)
+    !! Build a c_potential_nd from C function pointers. A null
+    !! `grad_many_ptr` makes grad_many call `grad_ptr` point by point.
 
     type(c_funptr), intent(in) :: v_ptr
     type(c_funptr), intent(in) :: grad_ptr
+    type(c_funptr), intent(in) :: grad_many_ptr
     type(c_potential_nd) :: pot
 
     call c_f_procpointer(v_ptr, pot%vf)
     call c_f_procpointer(grad_ptr, pot%gradf)
+    if (c_associated(grad_many_ptr)) then
+      call c_f_procpointer(grad_many_ptr, pot%grad_manyf)
+    end if
 
   end function new_c_potential_nd
 
@@ -135,6 +158,27 @@ contains
     dv = real(gc, wp)
 
   end function c_potential_nd_grad
+
+  subroutine c_potential_nd_grad_many(self, x, dv)
+
+    class(c_potential_nd), intent(inout) :: self
+    real(wp), intent(in) :: x(:, :)
+    real(wp), intent(out) :: dv(:, :)
+
+    real(c_double), allocatable :: xc(:, :)
+    real(c_double), allocatable :: gc(:, :)
+
+    if (.not. associated(self%grad_manyf)) then
+      call potential_nd_grad_many(self, x, dv)
+      return
+    end if
+    xc = real(x, c_double)
+    allocate(gc(size(x, 1), size(x, 2)))
+    call self%grad_manyf(int(size(x, 1), c_int), int(size(x, 2), c_int),  &
+      xc, gc)
+    dv = real(gc, wp)
+
+  end subroutine c_potential_nd_grad_many
 
   function c_potential_1d_v(self, phi) result(y)
 

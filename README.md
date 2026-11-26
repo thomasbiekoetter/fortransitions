@@ -86,6 +86,11 @@ contains
 end type
 ```
 
+Optionally, also override `grad_many(x, dv)`. It returns the gradient at
+all rows of an `(npts, ndim)` array at once, and the path deformation uses
+it for the forces on the whole path. By default it calls `grad` for each
+point.
+
 Then, with the first path point at (or near) the stable minimum and the
 last one at the metastable minimum:
 
