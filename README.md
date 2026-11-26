@@ -5,10 +5,12 @@ A Fortran port of the Python package
 (C.L. Wainwright, Comput. Phys. Commun. 183 (2012) 2006,
 [arXiv:1109.4189](http://arxiv.org/abs/1109.4189)).
 
-This port was written entirely by
-[Claude Fable 5](https://www.anthropic.com/news/claude-fable-5-mythos-5)
-(Anthropic), including the source code, the test programs, the reference
-scripts in `reference/`, and this README.
+This port was written with AI models by Anthropic. The initial port was
+written by
+[Claude Fable 5](https://www.anthropic.com/news/claude-fable-5-mythos-5),
+including the source code, the test programs, the reference scripts in
+`reference/`, and this README. Later additions, among them the Python
+interface in `python/`, were written with Claude Opus 5.5.
 
 ## Citation
 
@@ -71,6 +73,38 @@ Errors that the Python package raises as exceptions
 through integer `status` arguments; the codes are defined in
 `fortransitions__config` and re-exported by the top-level module.
 
+## Building and testing
+
+```sh
+fpm build --profile release
+fpm test --profile release   # validates against Python reference values
+fpm run --profile release    # runs the two-field example, writes CSVs
+```
+
+Always pass `--profile debug` or `--profile release` explicitly: without
+it, fpm compiles with no flags at all, so none of the flags defined in
+`fpm.toml` are applied. In particular, ifx then falls back to its
+value-unsafe floating-point default (`-fp-model=fast`), which breaks the
+thin-wall shooting; both profiles therefore set `-fp-model=precise` for
+ifx.
+
+The reference values asserted in the test programs were produced with the
+original Python package; the scripts that generate them are collected in
+`reference/` (see `reference/README.md`) for reproducibility.
+
+## Using fortransitions in your fpm project
+
+Add fortransitions to the `[dependencies]` of your `fpm.toml`:
+
+```toml
+[dependencies]
+fortransitions = { git = "https://github.com/thomasbiekoetter/fortransitions.git", profile = "release" }
+```
+
+`profile = "release"` compiles fortransitions with its own release flags,
+which for ifx include the required `-fp-model=precise` (see
+[Building and testing](#building-and-testing)).
+
 ## Usage
 
 Potentials are supplied as derived types. For `full_tunneling`, extend
@@ -125,7 +159,84 @@ functions; derivatives default to finite differences).
 
 The directory `python/` contains the Python package `fortransitions`.
 It exposes `fullTunneling` and `SingleFieldInstanton` with the same
-arguments as cosmoTransitions, with the potential written in Python:
+arguments as cosmoTransitions, with the potential written in Python.
+
+### Installation
+
+The Python package is built and installed from the `python/` folder.
+Both ways below use the same library folder `python/fortransitions/lib/`.
+
+#### Recommended: with pixi
+
+[pixi](https://pixi.sh) provides gfortran, fpm, make, Python and numpy.
+The package is installed into the pixi environment (`python/.pixi/`).
+
+Build the library and install the package:
+
+```sh
+cd python
+pixi run install
+```
+
+Run the tests, and the comparison with cosmoTransitions:
+
+```sh
+pixi run test
+pixi run -e compare compare
+```
+
+Uninstall and remove the build products:
+
+```sh
+pixi run clean
+```
+
+#### Manual: with make
+
+This installs the package into the active Python environment. It
+requires gfortran or ifx, fpm, make, pip and numpy.
+
+Build the library and install the package (with gfortran):
+
+```sh
+cd python
+make wrapper
+```
+
+With the Intel compiler, or with a Python interpreter that is not called
+`python`:
+
+```sh
+make wrapper FC=ifx
+make wrapper PC=python3
+```
+
+Run the tests:
+
+```sh
+python test/run_tests.py
+```
+
+Uninstall and remove the build products:
+
+```sh
+make clean
+```
+
+#### Switching between pixi and make
+
+Both installations share the compiled library, so rebuild it for the one
+you are about to use:
+
+```sh
+cd python
+pixi run install    # before using the pixi environment again
+make wrapper        # before using your own Python environment again
+```
+
+### Usage
+
+After the installation, for example:
 
 ```python
 from fortransitions import fullTunneling
@@ -133,30 +244,9 @@ res = fullTunneling([[1.0, 1.0], [0.0, 0.0]], V, dV)
 print(res.action)
 ```
 
-Build and install it with [pixi](https://pixi.sh) (`cd python && pixi run
-install`), which provides gfortran, fpm and Python. Alternatively, run
-`make wrapper` with your own gfortran or ifx, fpm and Python environment.
-See `python/README.md` for details. The package calls the library
-through `bind(C)` wrappers in `src/c_*.f90`.
-
-## Building and testing
-
-```sh
-fpm build --profile release
-fpm test --profile release   # validates against Python reference values
-fpm run --profile release    # runs the two-field example, writes CSVs
-```
-
-Always pass `--profile debug` or `--profile release` explicitly: without
-it, fpm compiles with no flags at all, so none of the flags defined in
-`fpm.toml` are applied. In particular, ifx then falls back to its
-value-unsafe floating-point default (`-fp-model=fast`), which breaks the
-thin-wall shooting; both profiles therefore set `-fp-model=precise` for
-ifx.
-
-The reference values asserted in the test programs were produced with the
-original Python package; the scripts that generate them are collected in
-`reference/` (see `reference/README.md`) for reproducibility.
+The package calls the Fortran library through `bind(C)` wrappers in
+`src/c_*.f90`. See `python/README.md` for the full documentation of the
+Python interface.
 
 ## License
 
