@@ -5,6 +5,9 @@
 #   pixi run test      install, then run the tests
 #   pixi run clean     remove all build products
 #
+# Add `-e ifx` to build with the Intel compiler (environment ifx), and
+# `-e compare` for the comparison with cosmoTransitions (see below).
+#
 # All build logic lives in the Makefile; the tasks only call it, so the
 # pixi build and the manual build (`make wrapper`) cannot diverge.
 
@@ -44,5 +47,17 @@ cosmoTransitions = "*"
 [feature.compare.tasks]
 compare = { cmd = "python test/compare_cosmoTransitions.py", depends-on = ["install"] }
 
+# Environment with the Intel compiler ifx instead of gfortran:
+#   pixi run -e ifx install
+#   pixi run -e ifx test
+# The package sets FC=ifx on activation, which the Makefile picks up. The
+# library then links Intel's runtime libraries from this environment.
+[feature.ifx.dependencies]
+ifx_linux-64 = "*"
+
 [environments]
 compare = ["compare"]
+ifx = ["ifx"]
+# The comparison with cosmoTransitions using the ifx build:
+#   pixi run -e compare-ifx compare
+compare-ifx = ["compare", "ifx"]

@@ -187,6 +187,17 @@ pixi run test
 pixi run -e compare compare
 ```
 
+Build and test with the Intel compiler ifx instead of gfortran:
+
+```sh
+pixi run -e ifx install
+pixi run -e ifx test
+pixi run -e compare-ifx compare
+```
+
+The ifx build links Intel's runtime libraries from the pixi environment
+`ifx`, so it only works while that environment exists.
+
 Uninstall and remove the build products:
 
 ```sh

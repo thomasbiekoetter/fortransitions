@@ -116,10 +116,16 @@ External fpm dependencies: `odeint` (`rkqs_vec` Cash-Karp RK stepper),
   pyenv env) share `python/fortransitions/lib/`: the last `make lib`
   wins. The Makefile therefore uses one fpm build directory per toolchain
   (`build/<FC>-env-<pixi env>`, `build/<FC>-system`). fpm does not relink
-  when only the link flags (rpath) change. The library from any of these
-  builds runs in all of the environments (it needs only libgfortran.so.5
-  with GFORTRAN_10 symbols), so no rebuild is needed when switching. Use
-  the build of the toolchain under test (e.g. ifx) when that matters.
+  when only the link flags (rpath) change. A gfortran build runs in all
+  of the environments (it needs only libgfortran.so.5 with GFORTRAN_10
+  symbols), so no rebuild is needed when switching. Use the build of the
+  toolchain under test when that matters.
+- The pixi environment `ifx` (conda-forge `ifx_linux-64`) provides ifx
+  and sets `FC=ifx`: `pixi run -e ifx test` tests the ifx build, and
+  `pixi run -e compare-ifx compare` (features compare + ifx) compares it
+  with cosmoTransitions. That
+  library links Intel's runtime from `python/.pixi/envs/ifx/lib`, so it
+  works in other environments only while the `ifx` environment exists.
 - `make wrapper` installs in setuptools' strict editable mode, i.e. a
   link tree in `python/build/__editable__*` on a plain `sys.path` entry.
   The default import-hook mode would let the repository folder (also

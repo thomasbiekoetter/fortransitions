@@ -26,6 +26,17 @@ pixi run test      # build, install and run the tests
 pixi shell         # a shell in the environment, with fortransitions
 ```
 
+With the Intel compiler ifx (pixi environment `ifx`):
+
+```sh
+pixi run -e ifx install
+pixi run -e ifx test
+pixi run -e compare-ifx compare    # comparison with cosmoTransitions
+```
+
+The ifx build links Intel's runtime libraries from that environment, so
+it only works while the environment exists.
+
 ### Manual build
 
 This requires gfortran (or ifx), [fpm](https://fpm.fortran-lang.org),
