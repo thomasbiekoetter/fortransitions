@@ -164,7 +164,9 @@ arguments as cosmoTransitions, with the potential written in Python.
 ### Installation
 
 The Python package is built and installed from the `python/` folder.
-Both ways below use the same library folder `python/fortransitions/lib/`.
+Both installations use the same compiled library in
+`python/fortransitions/lib/`, from the last `pixi run install` or
+`make wrapper`.
 
 #### Recommended: with pixi
 
@@ -221,17 +223,6 @@ Uninstall and remove the build products:
 
 ```sh
 make clean
-```
-
-#### Switching between pixi and make
-
-Both installations share the compiled library, so rebuild it for the one
-you are about to use:
-
-```sh
-cd python
-pixi run install    # before using the pixi environment again
-make wrapper        # before using your own Python environment again
 ```
 
 ### Usage
