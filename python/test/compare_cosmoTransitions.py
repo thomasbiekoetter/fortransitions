@@ -17,6 +17,7 @@ is 1 if any difference exceeds its tolerance.
 """
 
 import contextlib
+import importlib.metadata
 import io
 import sys
 import time
@@ -151,6 +152,15 @@ def quiet(func):
         return func()
 
 
+def step(label, func, action_of):
+    """Run func, printing its label before, and its run time and the
+    action (extracted from the result with action_of) after."""
+    print("    {:<20}".format(label + " ..."), end="", flush=True)
+    out, dt = timed(func)
+    print("{:7.3f} s   S = {:.6e}".format(dt, action_of(out)), flush=True)
+    return out, dt
+
+
 def compare(case, quantity, ct_val, ft_val, rtol):
     ref = abs(ct_val) if ct_val != 0 else 1.0
     ROWS.append((case, quantity, ct_val, ft_val, abs(ft_val - ct_val) / ref,
@@ -168,8 +178,8 @@ def run_1d(case, V, dV, rtol, **profile_params):
         prof = inst.findProfile(**profile_params)
         return inst, prof, inst.findAction(prof)
 
-    (ci, cp, ca), t_ct = timed(run_cosmo)
-    (fi, fp, fa), t_ft = timed(run_fortran)
+    (ci, cp, ca), t_ct = step("cosmoTransitions", run_cosmo, lambda r: r[2])
+    (fi, fp, fa), t_ft = step("fortransitions", run_fortran, lambda r: r[2])
     TIMES.append((case, t_ct, t_ft))
     compare(case, "phi_bar", ci.phi_bar, fi.phi_bar, 1e-4)
     compare(case, "rscale", ci.rscale, fi.rscale, 1e-4)
@@ -178,9 +188,12 @@ def run_1d(case, V, dV, rtol, **profile_params):
 
 
 def run_full(case, path, V, dV, rtol, **kwargs):
-    ct_res, t_ct = timed(lambda: quiet(
-        lambda: ct_pd.fullTunneling(path, V, dV, **kwargs)))
-    ft_res, t_ft = timed(lambda: ft.fullTunneling(path, V, dV, **kwargs))
+    ct_res, t_ct = step("cosmoTransitions", lambda: quiet(
+        lambda: ct_pd.fullTunneling(path, V, dV, **kwargs)),
+        lambda r: r.action)
+    ft_res, t_ft = step("fortransitions",
+                        lambda: ft.fullTunneling(path, V, dV, **kwargs),
+                        lambda r: r.action)
     TIMES.append((case, t_ct, t_ft))
     compare(case, "action", ct_res.action, ft_res.action, rtol)
     # The final paths are sampled at different points along the path, so
@@ -188,27 +201,31 @@ def run_full(case, path, V, dV, rtol, **kwargs):
     for i, label in [(0, "start"), (-1, "end")]:
         dist = np.linalg.norm(ct_res.Phi[i] - ft_res.Phi[i])
         scale = np.linalg.norm(ct_res.Phi[0] - ct_res.Phi[-1])
-        ROWS.append((case, "path {} (|d|/L)".format(label), 0.0, dist / scale,
-                     dist / scale, 1e-2))
+        ROWS.append((case, "path " + label, 0.0, dist / scale, dist / scale,
+                     1e-2))
     return ct_res, ft_res
 
 
 def print_report():
     print()
-    print("{:<26} {:<18} {:>17} {:>17} {:>9} {:>7}  ".format(
-        "case", "quantity", "cosmoTransitions", "fortransitions", "rel.diff",
-        "rtol"))
-    print("-" * 102)
+    print("cosmo = cosmoTransitions, fortran = fortransitions; for 'path "
+          "start/end',")
+    print("the distance of the path end points divided by the path length.")
+    w = max(len(row[0]) for row in ROWS)
+    header = "{:<{w}} {:<10} {:>12} {:>12} {:>8} {:>5}".format(
+        "case", "quantity", "cosmo", "fortran", "rel.diff", "rtol", w=w)
+    print(header)
+    print("-" * (len(header) + 6))
     nfail = 0
     for case, q, cv, fv, rd, rtol in ROWS:
         ok = rd <= rtol
         nfail += not ok
         if q.startswith("path"):
-            values = "{:>17} {:>17.3e}".format("", fv)
+            values = "{:>12} {:>12.3e}".format("", fv)
         else:
-            values = "{:>17.10e} {:>17.10e}".format(cv, fv)
-        print("{:<26} {:<18} {} {:>9.1e} {:>7.0e}  {}".format(
-            case, q, values, rd, rtol, "ok" if ok else "FAIL"))
+            values = "{:>12.6e} {:>12.6e}".format(cv, fv)
+        print("{:<{w}} {:<10} {} {:>8.1e} {:>5.0e}  {}".format(
+            case, q, values, rd, rtol, "ok" if ok else "FAIL", w=w))
     print()
     print("{:<26} {:>12} {:>12} {:>9}".format(
         "case", "t_cosmo [s]", "t_fortr [s]", "speedup"))
@@ -226,41 +243,72 @@ def print_report():
 def main():
     quick = "--quick" in sys.argv[1:]
     print("cosmoTransitions {} ({})".format(
-        getattr(cosmoTransitions, "__version__", "?"),
+        # The installed version; cosmoTransitions.__version__ is outdated
+        # (2.0.2 in release 2.0.7).
+        importlib.metadata.version("cosmoTransitions"),
         cosmoTransitions.__file__))
     print("numpy {}, Python {}".format(np.__version__,
                                        sys.version.split()[0]))
     tight = dict(xtol=1e-9, phitol=1e-9)
 
+    # Collect the cases first (name, function running them), so that the
+    # progress output can show their total number.
+    cases = []
+
     # test/check.f90 (default tolerances: agreement to a few 1e-3)
-    run_1d("1d thin", v1_thin, dv1_thin, 5e-3)
-    run_1d("1d thick", v1_thick, dv1_thick, 5e-3)
-    run_1d("1d thin, tight tol.", v1_thin, dv1_thin, 1e-3, **tight)
-    run_1d("1d thick, no dV", v1_thick, None, 5e-3)
-    V, dV = example_2d(fy=2.0)
-    run_full("2d thin", [[1., 1.], [0., 0.]], V, dV, 5e-3)
-    V, dV = example_2d(fy=80.0)
-    run_full("2d thick", [[1., 1.], [0., 0.]], V, dV, 5e-3)
-    V, dV = narrow_barrier()
-    run_full("narrow barrier, direct", [[1., 0.3], [0., 0.]], V, dV, 1e-3,
-             V_spline_samples=None, tunneling_findProfile_params=tight)
+    cases += [
+        ("1d thin", lambda n: run_1d(n, v1_thin, dv1_thin, 5e-3)),
+        ("1d thick", lambda n: run_1d(n, v1_thick, dv1_thick, 5e-3)),
+        ("1d thin, tight tol.",
+         lambda n: run_1d(n, v1_thin, dv1_thin, 1e-3, **tight)),
+        ("1d thick, no dV", lambda n: run_1d(n, v1_thick, None, 5e-3)),
+        ("2d thin", lambda n: run_full(n, [[1., 1.], [0., 0.]],
+                                       *example_2d(fy=2.0), 5e-3)),
+        ("2d thick", lambda n: run_full(n, [[1., 1.], [0., 0.]],
+                                        *example_2d(fy=80.0), 5e-3)),
+        ("narrow barrier, direct",
+         lambda n: run_full(n, [[1., 0.3], [0., 0.]], *narrow_barrier(),
+                            1e-3, V_spline_samples=None,
+                            tunneling_findProfile_params=tight)),
+    ]
 
     # test/double_well.f90 (tight tolerances)
-    for c in ([0.05, 0.2] if quick else
-              [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]):
+    def run_double_well(name, c):
         V, dV = double_well(c)
         xmin = optimize.minimize(V, [1.0, 1.0], jac=dV, method="BFGS",
                                  tol=1e-14).x
-        run_full("double well c={:.2f}".format(c), [xmin, [0., 0.]], V, dV,
-                 2e-3, tunneling_findProfile_params=tight)
+        run_full(name, [xmin, [0., 0.]], V, dV, 2e-3,
+                 tunneling_findProfile_params=tight)
+
+    for c in ([0.05, 0.2] if quick else
+              [0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]):
+        cases.append(("double well c={:.2f}".format(c),
+                      lambda n, c=c: run_double_well(n, c)))
 
     # test/many_fields.f90 (tight tolerances; cosmoTransitions is limited
     # to 10 fields)
-    for ndim in ([2, 5] if quick else range(2, 11)):
+    def run_many_fields(name, ndim):
         V, dV, x_true = many_fields(ndim)
         t = np.linspace(0.0, 1.0, 41)[:, None]
-        run_full("many fields ndim={}".format(ndim), x_true * (1.0 - t), V,
-                 dV, 2e-3, tunneling_findProfile_params=tight)
+        run_full(name, x_true * (1.0 - t), V, dV, 2e-3,
+                 tunneling_findProfile_params=tight)
+
+    for ndim in ([2, 5] if quick else range(2, 11)):
+        cases.append(("many fields ndim={}".format(ndim),
+                      lambda n, d=ndim: run_many_fields(n, d)))
+
+    print()
+    print("Running {} cases:".format(len(cases)))
+    for i, (name, run) in enumerate(cases, start=1):
+        print("[{:>2}/{}] {}".format(i, len(cases), name), flush=True)
+        nrows = len(ROWS)
+        run(name)
+        rows = ROWS[nrows:]
+        nok = sum(rd <= rtol for _, _, _, _, rd, rtol in rows)
+        action_rd = next(rd for _, q, _, _, rd, _ in rows if q == "action")
+        print("    -> rel. diff of S {:.1e}, {}/{} within tolerance{}".format(
+            action_rd, nok, len(rows),
+            "" if nok == len(rows) else "  <-- FAIL"), flush=True)
 
     nfail = print_report()
     print()
