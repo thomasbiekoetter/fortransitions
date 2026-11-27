@@ -47,14 +47,14 @@ pixi run -e compare-lfortran compare    # comparison with cosmoTransitions
 
 ### Manual build
 
-This requires gfortran (or ifx), [fpm](https://fpm.fortran-lang.org),
-make, and a Python environment with pip and numpy. From this directory,
-with that Python environment active:
+This requires gfortran, ifx or LFortran (0.69.0 or newer),
+[fpm](https://fpm.fortran-lang.org), make, and a Python environment with
+pip and numpy. From this directory, with that Python environment active:
 
 ```sh
-make wrapper           # gfortran
-make wrapper FC=ifx    # Intel compiler
-make wrapper FC=lfortran
+make wrapper               # gfortran
+make wrapper FC=ifx        # Intel compiler
+make wrapper FC=lfortran   # LFortran
 python test/run_tests.py
 ```
 

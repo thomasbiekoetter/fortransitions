@@ -265,7 +265,8 @@ pixi run clean
 #### Manual: with make
 
 This installs the package into the active Python environment. It
-requires gfortran or ifx, fpm, make, pip and numpy.
+requires gfortran, ifx or LFortran (0.69.0 or newer), fpm, make, pip and
+numpy.
 
 Build the library and install the package (with gfortran):
 
