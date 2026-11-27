@@ -36,6 +36,13 @@ fpm test  --profile debug                # bounds checks, FPE traps (gfortran)
   assigned through an argument when the call also passes an internal
   procedure and the variable is used by another internal procedure of
   the same host (see `LFORTRAN_ISSUES.md`).
+- `pixi.toml` in the root (separate from the one in `python/`) runs the
+  same fpm commands with compilers from conda-forge: `pixi run test
+  [profile] [name]`, `build`, `example`, `clean`, and `-e ifx` /
+  `-e lfortran`.
+  The compiler comes from `FPM_FC` in each environment's activation,
+  and `FPM_LDFLAGS` adds an rpath to the environment's `lib/`. Builds go
+  to `build/pixi-<environment>`.
 - The debug profile traps invalid/zero/overflow FPEs under gfortran. Code
   must not rely on producing NaN/Inf silently.
 - `*.csv` is gitignored, so example and test output is never committed.

@@ -118,6 +118,27 @@ LFortran compiles each executable as a whole program when it links it,
 which is why building the test programs takes much longer than with the
 other compilers.
 
+### With pixi
+
+The `pixi.toml` in the repository root provides fpm and the compilers
+(gfortran, ifx or LFortran from conda-forge):
+
+```sh
+pixi run test                  # gfortran, release profile
+pixi run test debug            # debug profile
+pixi run test release check    # a single test program
+pixi run build                 # only build
+pixi run example               # the example program
+pixi run -e ifx test           # with ifx
+pixi run -e lfortran test      # with LFortran
+pixi run clean                 # remove the build directory (here: gfortran)
+```
+
+Each environment builds in its own directory, `build/pixi-<environment>`,
+which `pixi run -e <environment> clean` removes.
+The executables are linked with an rpath to the environment's `lib/`, so
+they use the compiler runtime libraries of the environment.
+
 The reference values asserted in the test programs were produced with the
 original Python package; the scripts that generate them are collected in
 `reference/` (see `reference/README.md`) for reproducibility.
