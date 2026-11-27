@@ -20,8 +20,19 @@ fpm test  --profile debug                # bounds checks, FPE traps (gfortran)
 - **Always pass `--profile debug` or `--profile release`.** Without one,
   fpm uses no flags from `fpm.toml`. ifx then defaults to
   `-fp-model=fast`, which breaks the thin-wall shooting.
-- Both gfortran and ifx are supported (`--compiler ifx`). The flags for
-  each are under `[features]` in `fpm.toml`.
+- gfortran, ifx (`--compiler ifx`) and LFortran (`--compiler lfortran`)
+  are supported. The flags for each are under `[features]` in `fpm.toml`.
+  Run the tests with all three after changes in `src/` when possible.
+- LFortran: the profiles need `--cpp --legacy-array-sections
+  --realloc-lhs-arrays`; release uses `--fast --no-fast-math` (fast math
+  breaks `ieee_is_finite` and NaN comparisons). Debug builds need
+  `llvm-dwarfdump` on the PATH (for `-g`).
+- LFortran bug (see `LFORTRAN_ISSUES.md`): a value assigned through an
+  argument is lost if the call also passes an internal procedure and the
+  variable is used by another internal procedure of the same host.
+  Don't pass such variables as output arguments in calls that pass
+  internal procedures (e.g. to `rkqs_vec`, `brentq`); use a separate
+  local variable and copy it, as in `sfi_integrate_profile`.
 - The debug profile traps invalid/zero/overflow FPEs under gfortran. Code
   must not rely on producing NaN/Inf silently.
 - `*.csv` is gitignored, so example and test output is never committed.

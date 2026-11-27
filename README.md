@@ -88,6 +88,19 @@ value-unsafe floating-point default (`-fp-model=fast`), which breaks the
 thin-wall shooting; both profiles therefore set `-fp-model=precise` for
 ifx.
 
+The package builds and passes all tests with gfortran, ifx and LFortran:
+
+```sh
+fpm test --profile release --compiler ifx
+fpm test --profile release --compiler lfortran
+```
+
+For LFortran, the profiles add the required options, among them
+`--realloc-lhs-arrays`. The release profile uses `--fast --no-fast-math`,
+since fast math would break the checks for non-finite values. See
+`LFORTRAN_ISSUES.md` for the LFortran problems found and their
+workarounds.
+
 The reference values asserted in the test programs were produced with the
 original Python package; the scripts that generate them are collected in
 `reference/` (see `reference/README.md`) for reproducibility.
