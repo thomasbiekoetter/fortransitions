@@ -1,0 +1,65 @@
+# pixi workspace for building and testing the fpm package fortransitions.
+#
+#   pixi run build [profile]         build (profile: release (default) or debug)
+#   pixi run test [profile] [name]   run all test programs, or only `name`
+#   pixi run example [profile]       run the example program, writes CSVs
+#   pixi run clean                   remove this environment's build directory
+#
+# Add `-e ifx` or `-e lfortran` to build with the Intel compiler or with
+# LFortran instead of gfortran. Each environment builds in its own
+# directory, build/pixi-<environment>.
+#
+# The Python package has its own pixi workspace in python/.
+
+[workspace]
+name = "fortransitions"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[dependencies]
+fpm = ">=0.14"
+gfortran = "*"
+git = "*"
+
+# fpm reads the compiler from FPM_FC and extra link flags from
+# FPM_LDFLAGS. The rpath makes the executables use the compiler runtime
+# libraries of the environment instead of those of the system.
+[activation.env]
+FPM_FC = "gfortran"
+FPM_LDFLAGS = "-Wl,-rpath,$CONDA_PREFIX/lib"
+
+[tasks.build]
+cmd = "fpm build --profile {{ profile }} --build-dir build/pixi-$PIXI_ENVIRONMENT_NAME"
+args = [{ arg = "profile", default = "release" }]
+
+[tasks.test]
+cmd = "fpm test --profile {{ profile }} --build-dir build/pixi-$PIXI_ENVIRONMENT_NAME {{ name }}"
+args = [{ arg = "profile", default = "release" }, { arg = "name", default = "" }]
+
+[tasks.example]
+cmd = "fpm run --profile {{ profile }} --build-dir build/pixi-$PIXI_ENVIRONMENT_NAME"
+args = [{ arg = "profile", default = "release" }]
+
+# Removes only this environment's build directory, not the rest of build/.
+[tasks.clean]
+cmd = "rm -rf build/pixi-$PIXI_ENVIRONMENT_NAME"
+
+# Intel compiler ifx.
+[feature.ifx.dependencies]
+ifx_linux-64 = "*"
+
+[feature.ifx.activation.env]
+FPM_FC = "ifx"
+
+# LFortran. llvm-tools provides llvm-dwarfdump, which LFortran's -g (in the
+# debug profile) needs.
+[feature.lfortran.dependencies]
+lfortran = ">=0.69"
+llvm-tools = "*"
+
+[feature.lfortran.activation.env]
+FPM_FC = "lfortran"
+
+[environments]
+ifx = ["ifx"]
+lfortran = ["lfortran"]

@@ -8,3 +8,5 @@ python/fortransitions/include/
 python/.pixi/
 *.egg-info/
 __pycache__/
+# pixi workspace of the fpm package (pixi.toml)
+.pixi/
