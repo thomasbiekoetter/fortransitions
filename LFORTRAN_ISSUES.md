@@ -1,7 +1,8 @@
 # fortransitions with LFortran
 
-fortransitions builds and passes all tests with LFortran
-(version 0.68.0-243-gf97c7d364b), in the debug and the release profile:
+fortransitions builds and passes all tests with LFortran 0.69.0 or newer
+(tested: 0.69.0 from conda-forge and 0.69.0-753-g19216dc304), in the debug
+and the release profile:
 
 ```sh
 fpm test --profile release --compiler lfortran
@@ -26,12 +27,12 @@ what was done about them.
 | - | ------- | ----- | -------- |
 | 1 | Link error `_lfortran_string_read_f128` | LFortran runtime lacks the function | csv-fortran dependency removed |
 | 2 | "Array is not allocated" at run time | No reallocation on assignment by default | `--realloc-lhs-arrays` in the profiles |
-| 3 | Profile integration fails, all actions 0 | **LFortran bug** (see below) | workaround in `sfi_integrate_profile` |
+| 3 | Profile integration fails, all actions 0 | **LFortran bug** (see below), fixed in 0.69.0 | LFortran 0.69.0 or newer required |
 | 4 | `--fast` breaks the NaN checks | fast math | release profile uses `--fast --no-fast-math` |
 | 5 | Minimizer status in `test/double_well.f90` | test tolerance below rounding noise | test accepts status 3 |
 | 6 | Debug builds fail without `llvm-dwarfdump` | `-g` needs `llvm-dwarfdump` on the PATH | install it (Ubuntu: `sudo apt install llvm`) |
 | 7 | Python interface: shared libraries export nothing | `lfortran -c` writes empty object files by default | `--separate-compilation` in `python/fpm.toml` |
-| 8 | Python interface: `$ORIGIN` lost from the runpath | **LFortran bug**: link command run through a shell unquoted | Makefile escapes `$ORIGIN` twice |
+| 8 | Python interface: `$ORIGIN` lost from the runpath | **LFortran bug**: link command run through a shell unquoted, fixed after 0.69.0 | Makefile exports `ORIGIN='$ORIGIN'` |
 
 ## 1. Link error `_lfortran_string_read_f128`
 
@@ -55,7 +56,7 @@ odeint and the test programs. LFortran does this only with
 `--realloc-lhs-arrays`, which is in both LFortran profiles of `fpm.toml`.
 fpm passes the profile flags to the dependencies as well.
 
-## 3. LFortran bug: value lost through an argument (worked around)
+## 3. LFortran bug: value lost through an argument (fixed in 0.69.0)
 
 **Symptom:** `single_field_instanton%find_profile` returned status 1
 (integration error), so `full_tunneling` failed for every case. odeint's
@@ -163,17 +164,12 @@ B module proc passed, h uses a: 42.0000000 42.0000000
 C internal g passed, a unused : 42.0000000
 ```
 
-**Status:** fixed in LFortran 0.69.0 (conda-forge), where the
-reproducer prints 42 in all cases. The workaround is kept for older
-versions.
-
-**Workaround:** in `sfi_integrate_profile`, `rkqs_vec` returns the step
-size in a separate local variable (`h_did`), which no internal procedure
-uses, and it is copied to `dr_did` afterwards. The other calls in `src/`
-that pass internal procedures (to `brentq`, `minimize_bounded`,
-`minimize_unbounded`, and `rkqs_vec` in `sfi_integrate_and_save_profile`)
-do not assign to variables used by internal procedures, so they are not
-affected. Code changes in this area must keep this pattern in mind.
+**Status:** fixed in LFortran 0.69.0, where the reproducer prints 42 in
+all cases. fortransitions therefore requires LFortran 0.69.0 or newer.
+With older versions, a workaround in `sfi_integrate_profile` (returning
+the step size of `rkqs_vec` in a separate local variable, which no
+internal procedure uses, and copying it to `dr_did`) made the tests pass;
+it was removed after the fix.
 
 ## 4. `--fast` and fast math
 
@@ -229,7 +225,7 @@ exports nothing. With `--separate-compilation`, the object files contain
 the compiled code. The LFortran profiles in `python/fpm.toml` therefore
 add this option.
 
-## 8. LFortran bug: `$ORIGIN` lost from the runpath (worked around)
+## 8. LFortran bug: `$ORIGIN` lost from the runpath (fixed after 0.69.0)
 
 The libraries of the Python interface find each other through the
 runpath `$ORIGIN`, set with `-Wl,-rpath,$ORIGIN`. LFortran passes linker
@@ -253,9 +249,14 @@ lfortran --shared -Wl,-rpath,'\$ORIGIN' r.o -o librr.so
 #  RUNPATH: [<runtime dir>:$ORIGIN], NEEDED liblfortran_runtime.so.0
 ```
 
-Still present in LFortran 0.69.0 (conda-forge).
+Still present in LFortran 0.69.0 (conda-forge, used by the pixi
+environments), fixed in 0.69.0-753-g19216dc304, where the link command
+gets `$ORIGIN` unchanged.
 
-Workaround: for LFortran, the Makefile passes `$ORIGIN` escaped twice
-(`\\$ORIGIN` to fpm), since fpm removes one level of backslashes and
-LFortran's shell the other. With this, all Python tests pass with the
-LFortran build (`make wrapper FC=lfortran`).
+Workaround: the Makefile passes `$ORIGIN` as for the other compilers and
+exports the environment variable `ORIGIN='$ORIGIN'`. A shell that expands
+`$ORIGIN` then gets `$ORIGIN` again (the result is not expanded a second
+time), so the same flag works with LFortran versions with and without the
+bug. An earlier workaround, escaping `$ORIGIN` twice, worked only with
+versions that have the bug: newer versions wrote a literal `\$ORIGIN`
+into the runpath.

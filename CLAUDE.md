@@ -30,14 +30,12 @@ fpm test  --profile debug                # bounds checks, FPE traps (gfortran)
 - LFortran and the Python interface (`make wrapper FC=lfortran`):
   `python/fpm.toml` adds `--separate-compilation` (otherwise `lfortran -c`
   writes empty object files and the shared libraries export nothing), and
-  the Makefile escapes `$ORIGIN` twice, because LFortran runs its link
-  command through a shell that would expand it.
-- LFortran bug (see `LFORTRAN_ISSUES.md`): a value assigned through an
-  argument is lost if the call also passes an internal procedure and the
-  variable is used by another internal procedure of the same host.
-  Don't pass such variables as output arguments in calls that pass
-  internal procedures (e.g. to `rkqs_vec`, `brentq`); use a separate
-  local variable and copy it, as in `sfi_integrate_profile`.
+  the Makefile exports `ORIGIN='$ORIGIN'`, because LFortran up to 0.69.0
+  runs its link command through a shell that would expand `$ORIGIN`.
+- LFortran 0.69.0 or newer is required. Older versions lose a value
+  assigned through an argument when the call also passes an internal
+  procedure and the variable is used by another internal procedure of
+  the same host (see `LFORTRAN_ISSUES.md`).
 - The debug profile traps invalid/zero/overflow FPEs under gfortran. Code
   must not rely on producing NaN/Inf silently.
 - `*.csv` is gitignored, so example and test output is never committed.
