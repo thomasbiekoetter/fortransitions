@@ -25,7 +25,7 @@ what was done about them.
 | 3 | Profile integration fails, all actions 0 | **LFortran bug** (see below) | workaround in `sfi_integrate_profile` |
 | 4 | `--fast` breaks the NaN checks | fast math | release profile uses `--fast --no-fast-math` |
 | 5 | Minimizer status in `test/double_well.f90` | test tolerance below rounding noise | test accepts status 3 |
-| 6 | Debug builds fail without `llvm-dwarfdump` | `-g` needs `llvm-dwarfdump` on the PATH | environment (LFortran's build environment has it) |
+| 6 | Debug builds fail without `llvm-dwarfdump` | `-g` needs `llvm-dwarfdump` on the PATH | install it (Ubuntu: `sudo apt install llvm`) |
 
 ## 1. Link error `_lfortran_string_read_f128`
 
@@ -191,7 +191,18 @@ against the reference values, and gfortran results are unchanged.
 
 ## 6. Debug builds need `llvm-dwarfdump`
 
-LFortran's `-g` (part of the general debug flags in `fpm.toml`) calls
-`llvm-dwarfdump`. Without it on the PATH, every compilation in the debug
-profile fails ("Error in creating the files used to generate the debug
-information"). LFortran's own build environment provides it.
+Not a problem of fortransitions, but a requirement of LFortran: its `-g`
+(part of the general debug flags in `fpm.toml`) calls `llvm-dwarfdump`,
+and also needs Python. Without `llvm-dwarfdump` on the PATH, every
+compilation in the debug profile fails ("Error in creating the files used
+to generate the debug information").
+
+On Ubuntu, the versioned LLVM packages (e.g. `llvm-20`) only provide
+versioned names such as `llvm-dwarfdump-20` in `/usr/bin`. The
+unversioned `llvm-dwarfdump` comes with the metapackage `llvm`
+(`sudo apt install llvm`).
+
+A pixi (conda-forge) environment for building fortransitions with
+LFortran would need `llvm-tools` (which provides `llvm-dwarfdump`) and
+`python` in addition to `lfortran` and `fpm`: the conda-forge `lfortran`
+package depends on `clang`, but not on `llvm-tools`.
