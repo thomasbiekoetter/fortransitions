@@ -5,8 +5,9 @@
 #   pixi run test      install, then run the tests
 #   pixi run clean     remove all build products
 #
-# Add `-e ifx` to build with the Intel compiler (environment ifx), and
-# `-e compare` for the comparison with cosmoTransitions (see below).
+# Add `-e ifx` or `-e lfortran` to build with the Intel compiler or with
+# LFortran, and `-e compare` (`-e compare-ifx`, `-e compare-lfortran`) for
+# the comparison with cosmoTransitions (see below).
 #
 # All build logic lives in the Makefile; the tasks only call it, so the
 # pixi build and the manual build (`make wrapper`) cannot diverge.
@@ -55,9 +56,26 @@ compare = { cmd = "python test/compare_cosmoTransitions.py", depends-on = ["inst
 [feature.ifx.dependencies]
 ifx_linux-64 = "*"
 
+# Environment with LFortran instead of gfortran:
+#   pixi run -e lfortran install
+#   pixi run -e lfortran test
+# FC=lfortran selects it in the Makefile (gfortran from the default
+# dependencies is present as well). llvm-tools provides llvm-dwarfdump,
+# which LFortran's -g needs.
+[feature.lfortran.dependencies]
+lfortran = "*"
+llvm-tools = "*"
+
+[feature.lfortran.activation.env]
+FC = "lfortran"
+
 [environments]
 compare = ["compare"]
 ifx = ["ifx"]
 # The comparison with cosmoTransitions using the ifx build:
 #   pixi run -e compare-ifx compare
 compare-ifx = ["compare", "ifx"]
+lfortran = ["lfortran"]
+# The comparison with cosmoTransitions using the LFortran build:
+#   pixi run -e compare-lfortran compare
+compare-lfortran = ["compare", "lfortran"]
