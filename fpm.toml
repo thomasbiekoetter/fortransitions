@@ -29,9 +29,11 @@ bspline-fortran = { git = "https://github.com/thomasbiekoetter/bspline-fortran.g
 debug.flags = "-fPIC -O0 -g "
 debug.gfortran.flags = "-fbounds-check -fbacktrace -Wall -Wuninitialized -fmax-errors=1 -fcheck=all -ffpe-trap=invalid,zero,overflow -ffpe-summary=invalid,zero,overflow"
 debug.ifx.flags = "-check bounds -check pointer -traceback -fp-model=precise"
+debug.lfortran.flags = "--cpp --legacy-array-sections --realloc-lhs-arrays --array-bounds-checking --fpe-trap=invalid,zero,overflow"
 release.flags = "-O3"
 release.gfortran.flags = "-march=native -fmax-errors=1 -ffixed-line-length-none -fno-range-check -ffpe-summary=invalid,zero,overflow"
 release.ifx.flags = "-xHost -fp-model=precise"
+release.lfortran.flags = "--cpp --legacy-array-sections --realloc-lhs-arrays"
 
 [profiles]
 debug = ["debug"]
