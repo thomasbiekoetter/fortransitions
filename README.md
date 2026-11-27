@@ -101,6 +101,23 @@ uses `--fast --no-fast-math`, since fast math would break the checks for
 non-finite values. See `LFORTRAN_ISSUES.md` for the LFortran problems
 found and their workarounds.
 
+Compile and run times in the release profile (wall-clock times on an
+Intel Core i7-1185G7, fpm 0.14.1; compilation from scratch, run times
+the best of three runs):
+
+|                                        | gfortran 15.2 | ifx 2025.2 | LFortran 0.69.0 |
+| -------------------------------------- | ------------: | ---------: | --------------: |
+| Compile library, dependencies, example | 33 s          | 27 s       | 125 s           |
+| Compile the four test programs         | 12 s          | 14 s       | 253 s           |
+| Run `check`                            | 0.20 s        | 0.24 s     | 0.21 s          |
+| Run `double_well`                      | 0.30 s        | 0.45 s     | 0.50 s          |
+| Run `many_fields`                      | 1.49 s        | 1.69 s     | 1.80 s          |
+| Run `full_tunneling_example`           | 0.044 s       | 0.061 s    | 0.078 s         |
+
+LFortran compiles each executable as a whole program when it links it,
+which is why building the test programs takes much longer than with the
+other compilers.
+
 The reference values asserted in the test programs were produced with the
 original Python package; the scripts that generate them are collected in
 `reference/` (see `reference/README.md`) for reproducibility.
