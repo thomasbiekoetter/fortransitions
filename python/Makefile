@@ -26,12 +26,11 @@ PKG := fortransitions
 # environment, the environment's lib/ is added so that its libgfortran
 # is used instead of the system one.
 RPATH := -Wl,-rpath,$$ORIGIN
-ifeq ($(notdir $(FC)),lfortran)
-# LFortran runs its link command through a shell, which would expand
-# $ORIGIN as an (empty) variable. Escape it twice: fpm removes one level
-# of backslashes, LFortran's shell the other.
-RPATH := -Wl,-rpath,\\$$ORIGIN
-endif
+# LFortran up to 0.69.0 runs its link command through a shell, which
+# expands $ORIGIN as an environment variable. Setting ORIGIN='$ORIGIN'
+# makes that expansion give $ORIGIN again, so the same flag works with
+# these and with newer versions, which pass it on unchanged.
+export ORIGIN := $$ORIGIN
 ifdef CONDA_PREFIX
 RPATH += -Wl,-rpath,$(CONDA_PREFIX)/lib
 endif

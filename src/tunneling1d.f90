@@ -459,7 +459,6 @@ contains
     real(wp) :: dr
     real(wp) :: drnext
     real(wp) :: dr_did
-    real(wp) :: h_did
     real(wp) :: ysign
     real(wp) :: rmax_tot
     real(wp) :: x
@@ -481,14 +480,8 @@ contains
     rmax_tot = rmax + r0
 
     do
-      ! The step size is returned in h_did, not directly in dr_did: dr_did is
-      ! used by the internal procedures interp_dphi/interp_phi_diff, and
-      ! LFortran loses a value assigned to such a variable through an
-      ! argument of a call that also passes an internal procedure (deriv).
-      ! See LFORTRAN_ISSUES.md.
-      call rkqs_vec(deriv, r0, y0, dr, epsabs, epsfrac, dy, h_did,  &
+      call rkqs_vec(deriv, r0, y0, dr, epsabs, epsfrac, dy, dr_did,  &
         drnext, st, dydt0=dydr0)
-      dr_did = h_did
       if (st /= rkqs_ok) then
         ! Step size underflow/overflow or too many step reductions.
         status = err_integration
