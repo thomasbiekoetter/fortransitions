@@ -35,7 +35,7 @@ fpm test  --profile debug                # bounds checks, FPE traps (gfortran)
 - LFortran 0.69.0 or newer is required. Older versions lose a value
   assigned through an argument when the call also passes an internal
   procedure and the variable is used by another internal procedure of
-  the same host (see `LFORTRAN_ISSUES.md`).
+  the same host.
 - The debug profile traps invalid/zero/overflow FPEs under gfortran. Code
   must not rely on producing NaN/Inf silently.
 - `*.csv` is gitignored, so example and test output is never committed.

@@ -98,8 +98,7 @@ fpm test --profile release --compiler lfortran
 LFortran 0.69.0 or newer is required. For LFortran, the profiles add the
 required options, among them `--realloc-lhs-arrays`. The release profile
 uses `--fast --no-fast-math`, since fast math would break the checks for
-non-finite values. See `LFORTRAN_ISSUES.md` for the LFortran problems
-found and their workarounds.
+non-finite values.
 
 Compile and run times in the release profile (wall-clock times on an
 Intel Core i7-1185G7, fpm 0.14.1; compilation from scratch, run times
