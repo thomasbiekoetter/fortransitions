@@ -229,11 +229,12 @@ cd python
 make wrapper
 ```
 
-With the Intel compiler, or with a Python interpreter that is not called
-`python`:
+With the Intel compiler or LFortran, or with a Python interpreter that is
+not called `python`:
 
 ```sh
 make wrapper FC=ifx
+make wrapper FC=lfortran
 make wrapper PC=python3
 ```
 

@@ -46,6 +46,7 @@ with that Python environment active:
 ```sh
 make wrapper           # gfortran
 make wrapper FC=ifx    # Intel compiler
+make wrapper FC=lfortran
 python test/run_tests.py
 ```
 

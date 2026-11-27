@@ -27,6 +27,11 @@ fpm test  --profile debug                # bounds checks, FPE traps (gfortran)
   --realloc-lhs-arrays`; release uses `--fast --no-fast-math` (fast math
   breaks `ieee_is_finite` and NaN comparisons). Debug builds need
   `llvm-dwarfdump` on the PATH (for `-g`).
+- LFortran and the Python interface (`make wrapper FC=lfortran`):
+  `python/fpm.toml` adds `--separate-compilation` (otherwise `lfortran -c`
+  writes empty object files and the shared libraries export nothing), and
+  the Makefile escapes `$ORIGIN` twice, because LFortran runs its link
+  command through a shell that would expand it.
 - LFortran bug (see `LFORTRAN_ISSUES.md`): a value assigned through an
   argument is lost if the call also passes an internal procedure and the
   variable is used by another internal procedure of the same host.

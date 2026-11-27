@@ -11,7 +11,9 @@ fpm test --profile debug --compiler lfortran
 The results agree with gfortran to better than 1e-6 for most values; the
 largest difference (1e-3, double well at c = 0.25) is the known spread of
 the path deformation, also seen between gfortran, ifx and cosmoTransitions.
-The example program gives the same actions as with gfortran.
+The example program gives the same actions as with gfortran. The Python
+interface works with an LFortran build as well (`make wrapper FC=lfortran`
+in `python/`), and all Python tests pass.
 
 This file lists the problems found on the way, with their causes and
 what was done about them.
@@ -26,6 +28,8 @@ what was done about them.
 | 4 | `--fast` breaks the NaN checks | fast math | release profile uses `--fast --no-fast-math` |
 | 5 | Minimizer status in `test/double_well.f90` | test tolerance below rounding noise | test accepts status 3 |
 | 6 | Debug builds fail without `llvm-dwarfdump` | `-g` needs `llvm-dwarfdump` on the PATH | install it (Ubuntu: `sudo apt install llvm`) |
+| 7 | Python interface: shared libraries export nothing | `lfortran -c` writes empty object files by default | `--separate-compilation` in `python/fpm.toml` |
+| 8 | Python interface: `$ORIGIN` lost from the runpath | **LFortran bug**: link command run through a shell unquoted | Makefile escapes `$ORIGIN` twice |
 
 ## 1. Link error `_lfortran_string_read_f128`
 
@@ -206,3 +210,44 @@ A pixi (conda-forge) environment for building fortransitions with
 LFortran would need `llvm-tools` (which provides `llvm-dwarfdump`) and
 `python` in addition to `lfortran` and `fpm`: the conda-forge `lfortran`
 package depends on `clang`, but not on `llvm-tools`.
+
+## 7. Python interface: empty object files
+
+The Python interface needs fortransitions as a shared library
+(`python/fpm.toml`, `make wrapper FC=lfortran`). By default, `lfortran -c`
+writes object files without code (480 bytes for any module): LFortran
+compiles the whole program only when it links an executable, from the
+module files. Executables, and with them the fpm tests, work this way,
+but a shared library linked from such object files contains no code and
+exports nothing. With `--separate-compilation`, the object files contain
+the compiled code. The LFortran profiles in `python/fpm.toml` therefore
+add this option.
+
+## 8. LFortran bug: `$ORIGIN` lost from the runpath (worked around)
+
+The libraries of the Python interface find each other through the
+runpath `$ORIGIN`, set with `-Wl,-rpath,$ORIGIN`. LFortran passes linker
+options on correctly, but builds the link command as a string and runs it
+through a shell (`system()` in `src/bin/lfortran.cpp`) without quoting
+it. That shell expands `$ORIGIN` as an (empty) environment variable, so
+the linker receives `-rpath` without a value and takes the next argument,
+the runtime library `-llfortran_runtime`, as its value. The result is a
+library whose runpath reads `<lfortran runtime dir>:--library=lfortran_runtime`
+and which does not link LFortran's runtime library at all.
+
+Reproducer:
+
+```sh
+lfortran -c --separate-compilation -fPIC r.f90 -o r.o   # any module
+lfortran --shared -Wl,-rpath,'$ORIGIN' r.o -o librr.so
+readelf -d librr.so | grep -E "NEEDED|RUNPATH"
+#  RUNPATH: [<runtime dir>:--library=lfortran_runtime]
+#  (no NEEDED entry for liblfortran_runtime)
+lfortran --shared -Wl,-rpath,'\$ORIGIN' r.o -o librr.so
+#  RUNPATH: [<runtime dir>:$ORIGIN], NEEDED liblfortran_runtime.so.0
+```
+
+Workaround: for LFortran, the Makefile passes `$ORIGIN` escaped twice
+(`\\$ORIGIN` to fpm), since fpm removes one level of backslashes and
+LFortran's shell the other. With this, all Python tests pass with the
+LFortran build (`make wrapper FC=lfortran`).
