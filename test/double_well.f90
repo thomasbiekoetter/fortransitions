@@ -145,7 +145,12 @@ program double_well
     status = 0
     call minimize(v_plain, x0, xtrue, fmin=vtrue, status=status,  &
       xtol=1.0e-12_wp)
-    call assert_true("minimization status", status == 0)
+    ! Status 3 (maximum number of iterations reached) is accepted: xtol is
+    ! below the rounding noise of gradmin's finite-difference gradient
+    ! (~1e-9), so whether |grad V| < xtol is reached depends on the last
+    ! bits of the arithmetic (e.g. not with LFortran). The minimum itself is
+    ! checked against the reference values below.
+    call assert_true("minimization status", status == 0 .or. status == 3)
     print "(a,2f16.12)", "true minimum at ", xtrue
     print "(a,es16.8)", "V(true minimum) = ", vtrue
     call assert_close("true minimum x", xtrue(1), ref_xmin(i), 1.0e-6_wp)
