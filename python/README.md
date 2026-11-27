@@ -195,10 +195,26 @@ two-field example of cosmoTransitions (`examples/fullTunneling.py`):
 | single points only, plain floats | 0.30 s | (fails) |
 | vectorized, but `vectorized=False` | 2.6 s | |
 
-For all test problems of `test/compare_cosmoTransitions.py`, with
-vectorized potentials, fortransitions is 10–40x faster for one-field
-problems, about 10x for the two-field example, about 60x for the double
-well and 40–70x for 2–10 fields. The narrow barrier with
-`V_spline_samples=None` is 5x faster: there, the 1d tunneling has to call
-`V` and `dV` one point at a time. Over all problems it is 27x faster
-(1.9 s vs. 52 s).
+Run times of all problems of `test/compare_cosmoTransitions.py` (with
+vectorized potentials), from `pixi run -e compare compare`,
+`-e compare-ifx` and `-e compare-lfortran`, with the speedup over
+cosmoTransitions in parentheses:
+
+| Problems | cosmoTransitions | gfortran | ifx | LFortran |
+| -------- | ---------------: | -------: | --: | -------: |
+| 1d (4 cases) | 0.86 s | 0.030 s (29x) | 0.037 s (23x) | 0.028 s (25x) |
+| 2d (thin, thick) | 0.93 s | 0.075 s (12x) | 0.084 s (11x) | 0.081 s (11x) |
+| Narrow barrier, `V_spline_samples=None` | 5.75 s | 1.07 s (5x) | 1.26 s (4x) | 0.93 s (5x) |
+| Double well (7 values of c) | 30.9 s | 0.51 s (61x) | 0.65 s (47x) | 0.64 s (46x) |
+| Many fields (2–10 fields) | 19.6 s | 0.43 s (46x) | 0.50 s (38x) | 0.53 s (39x) |
+| **Total** | **58.0 s** | **2.11 s (27x)** | **2.54 s (22x)** | **2.20 s (26x)** |
+
+The cosmoTransitions times are those of the gfortran run. They vary by a
+few percent between runs (56–58 s in total), so each speedup is
+computed from the cosmoTransitions time of its own run. The narrow
+barrier gains the least: with `V_spline_samples=None`, the 1d tunneling
+has to call `V` and `dV` one point at a time.
+
+Measured on an Intel Core i7-1185G7 with cosmoTransitions 2.0.7,
+Python 3.13, numpy 2.2.6 and scipy 1.16.3, and the compilers from
+conda-forge: gfortran 16.2, ifx 2026.2 and LFortran 0.69.0.
