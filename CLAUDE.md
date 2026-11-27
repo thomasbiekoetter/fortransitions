@@ -35,7 +35,7 @@ fpm test  --profile debug                # bounds checks, FPE traps (gfortran)
 - LFortran 0.69.0 or newer is required. Older versions lose a value
   assigned through an argument when the call also passes an internal
   procedure and the variable is used by another internal procedure of
-  the same host (see `LFORTRAN_ISSUES.md`).
+  the same host.
 - `pixi.toml` in the root (separate from the one in `python/`) runs the
   same fpm commands with compilers from conda-forge: `pixi run test
   [profile] [name]`, `build`, `example`, `clean`, and `-e ifx` /
