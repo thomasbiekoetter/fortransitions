@@ -33,7 +33,7 @@ debug.lfortran.flags = "--cpp --legacy-array-sections --realloc-lhs-arrays --arr
 release.flags = "-O3"
 release.gfortran.flags = "-march=native -fmax-errors=1 -ffixed-line-length-none -fno-range-check -ffpe-summary=invalid,zero,overflow"
 release.ifx.flags = "-xHost -fp-model=precise"
-release.lfortran.flags = "--cpp --legacy-array-sections --realloc-lhs-arrays"
+release.lfortran.flags = "--cpp --legacy-array-sections --realloc-lhs-arrays --fast --no-fast-math"
 
 [profiles]
 debug = ["debug"]
