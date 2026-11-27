@@ -211,6 +211,14 @@ pixi run -e compare-ifx compare
 The ifx build links Intel's runtime libraries from the pixi environment
 `ifx`, so it only works while that environment exists.
 
+The same with LFortran (from conda-forge):
+
+```sh
+pixi run -e lfortran install
+pixi run -e lfortran test
+pixi run -e compare-lfortran compare
+```
+
 Uninstall and remove the build products:
 
 ```sh

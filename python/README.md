@@ -37,6 +37,14 @@ pixi run -e compare-ifx compare    # comparison with cosmoTransitions
 The ifx build links Intel's runtime libraries from that environment, so
 it only works while the environment exists.
 
+With LFortran (pixi environment `lfortran`):
+
+```sh
+pixi run -e lfortran install
+pixi run -e lfortran test
+pixi run -e compare-lfortran compare    # comparison with cosmoTransitions
+```
+
 ### Manual build
 
 This requires gfortran (or ifx), [fpm](https://fpm.fortran-lang.org),

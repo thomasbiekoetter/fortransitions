@@ -13,7 +13,9 @@ largest difference (1e-3, double well at c = 0.25) is the known spread of
 the path deformation, also seen between gfortran, ifx and cosmoTransitions.
 The example program gives the same actions as with gfortran. The Python
 interface works with an LFortran build as well (`make wrapper FC=lfortran`
-in `python/`), and all Python tests pass.
+in `python/`, or the pixi environments `lfortran` and `compare-lfortran`
+with conda-forge's LFortran 0.69.0), and all Python tests and comparisons
+with cosmoTransitions pass.
 
 This file lists the problems found on the way, with their causes and
 what was done about them.
@@ -161,6 +163,10 @@ B module proc passed, h uses a: 42.0000000 42.0000000
 C internal g passed, a unused : 42.0000000
 ```
 
+**Status:** fixed in LFortran 0.69.0 (conda-forge), where the
+reproducer prints 42 in all cases. The workaround is kept for older
+versions.
+
 **Workaround:** in `sfi_integrate_profile`, `rkqs_vec` returns the step
 size in a separate local variable (`h_did`), which no internal procedure
 uses, and it is copied to `dr_did` afterwards. The other calls in `src/`
@@ -206,10 +212,10 @@ versioned names such as `llvm-dwarfdump-20` in `/usr/bin`. The
 unversioned `llvm-dwarfdump` comes with the metapackage `llvm`
 (`sudo apt install llvm`).
 
-A pixi (conda-forge) environment for building fortransitions with
-LFortran would need `llvm-tools` (which provides `llvm-dwarfdump`) and
-`python` in addition to `lfortran` and `fpm`: the conda-forge `lfortran`
-package depends on `clang`, but not on `llvm-tools`.
+The conda-forge `lfortran` package depends on `clang`, but not on
+`llvm-tools` (which provides `llvm-dwarfdump`). The pixi environments
+`lfortran` and `compare-lfortran` in `python/pixi.toml` therefore add
+`llvm-tools`.
 
 ## 7. Python interface: empty object files
 
@@ -246,6 +252,8 @@ readelf -d librr.so | grep -E "NEEDED|RUNPATH"
 lfortran --shared -Wl,-rpath,'\$ORIGIN' r.o -o librr.so
 #  RUNPATH: [<runtime dir>:$ORIGIN], NEEDED liblfortran_runtime.so.0
 ```
+
+Still present in LFortran 0.69.0 (conda-forge).
 
 Workaround: for LFortran, the Makefile passes `$ORIGIN` escaped twice
 (`\\$ORIGIN` to fpm), since fpm removes one level of backslashes and

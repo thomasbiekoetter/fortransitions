@@ -143,6 +143,10 @@ with plain `write` statements, so it needs no CSV library.
   with cosmoTransitions. That
   library links Intel's runtime from `python/.pixi/envs/ifx/lib`, so it
   works in other environments only while the `ifx` environment exists.
+- The pixi environments `lfortran` and `compare-lfortran` provide
+  conda-forge's LFortran (with `llvm-tools` for `llvm-dwarfdump`) and set
+  `FC=lfortran` in their activation; the default dependencies also
+  contain gfortran, so `FC` is what selects the compiler.
 - `make wrapper` installs in setuptools' strict editable mode, i.e. a
   link tree in `python/build/__editable__*` on a plain `sys.path` entry.
   The default import-hook mode would let the repository folder (also
